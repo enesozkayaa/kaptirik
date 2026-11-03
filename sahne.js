@@ -177,23 +177,41 @@ const Sahne = (() => {
     return grup;
   }
 
-  // ---------- Istaka: arkasında oyuncunun adı kazılı ----------
+  // ---------- Istaka ----------
+  // Gerçek okey ıstakası gibi: sahibinin tarafında yüksek bir sırt, önünde iki basamak (iki sıra taş).
+  // Yerel eksenler: +x ıstaka boyunca, +z masanın ortasına doğru, sahibi -z tarafında oturur.
+  // Oyuncunun adı ön kenara (masanın ortasına bakan yüze) kazılı.
+  const ISTAKA_BOY = 4.4;
+  const UST_SIRA = { z: -0.12, y: 0.2 };   // sırta yakın üst basamak
+  const ALT_SIRA = { z: 0.16, y: 0.05 };   // önde alt basamak
   function istaka(ad, renk) {
     const grup = new THREE.Group();
-    const ahsap = dokuKanvas(512, 64, (g, w, h) => {
+    // Yandan kesit (z, y): sırt → üst basamak → alt basamak → ön kenar
+    const kesit = [
+      [-0.36, 0], [0.34, 0], [0.34, 0.16], [0.3, 0.16], [0.3, 0.05], [-0.01, 0.05], [-0.01, 0.25],
+      [-0.05, 0.25], [-0.05, 0.2], [-0.29, 0.2], [-0.29, 0.66], [-0.325, 0.7], [-0.36, 0.66],
+    ];
+    const sekil = new THREE.Shape();
+    kesit.forEach(([z, y], i) => (i ? sekil.lineTo(-z, y) : sekil.moveTo(-z, y)));
+    const geo = new THREE.ExtrudeGeometry(sekil, { depth: ISTAKA_BOY, bevelEnabled: true, bevelSize: 0.012, bevelThickness: 0.02, bevelSegments: 2 });
+    geo.rotateY(Math.PI / 2);   // kesitin x'i yerel -z'ye, uzunluk yerel x'e döner
+    geo.translate(-ISTAKA_BOY / 2, 0, 0);
+    const govde = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x8a5530, roughness: 0.5 }));
+    govde.castShadow = govde.receiveShadow = true;
+    // Ön kenara kazılı ad (ahşap damarlı şerit)
+    const yazi = dokuKanvas(1024, 48, (g, w, h) => {
       g.fillStyle = '#7a4a24';
       g.fillRect(0, 0, w, h);
-      for (let k = 0; k < 30; k++) {  // ağaç damarları
+      for (let k = 0; k < 24; k++) {  // ağaç damarları
         g.strokeStyle = `rgba(${Math.random() < 0.5 ? '50,25,10' : '150,95,50'},0.35)`;
         g.lineWidth = 1 + Math.random() * 2;
         g.beginPath();
         const y = Math.random() * h;
         g.moveTo(0, y);
-        g.bezierCurveTo(w * 0.3, y + 6, w * 0.6, y - 6, w, y + (Math.random() - 0.5) * 8);
+        g.bezierCurveTo(w * 0.3, y + 4, w * 0.6, y - 4, w, y + (Math.random() - 0.5) * 6);
         g.stroke();
       }
-      // Kazılı ad: koyu oyuk + alt kenarında ışık
-      g.font = 'bold 34px Georgia, serif';
+      g.font = 'bold 38px Georgia, serif';
       g.textAlign = 'center';
       g.textBaseline = 'middle';
       g.fillStyle = 'rgba(255,220,170,0.35)';
@@ -201,27 +219,22 @@ const Sahne = (() => {
       g.fillStyle = '#2a1408';
       g.fillText(ad, w / 2, h / 2);
       g.fillStyle = renk;
-      g.fillRect(14, h / 2 - 5, 10, 10);
+      g.beginPath();
+      g.arc(w / 2 - g.measureText(ad).width / 2 - 22, h / 2, 9, 0, Math.PI * 2);
+      g.fill();
     });
-    const malz = new THREE.MeshStandardMaterial({ color: 0x8a5530, roughness: 0.55 });
-    const arkaMalz = new THREE.MeshStandardMaterial({ map: ahsap, roughness: 0.6 });
-    // Raf (taşlar üstünde durur) ve masanın ortasına bakan pano (yerel +z yönü = masanın ortası).
-    // Panonun ortaya bakan yüzüne oyuncunun adı kazılı; taşların üst kısmı panonun üstünden görünür.
-    const raf = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.08, 0.6), malz);
-    raf.position.set(0, 0.04, 0);
-    const pano = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.32, 0.08), [malz, malz, malz, malz, arkaMalz, malz]);
-    pano.position.set(0, 0.2, 0.28);
-    raf.castShadow = pano.castShadow = true;
-    grup.add(raf, pano);
+    const serit = new THREE.Mesh(new THREE.PlaneGeometry(ISTAKA_BOY, 0.15), new THREE.MeshStandardMaterial({ map: yazi, roughness: 0.6 }));
+    serit.position.set(0, 0.08, 0.342 + 0.021);
+    grup.add(govde, serit);
     return grup;
   }
 
   // Koltuk konumu ve dönüşü (ekrana göre). Dönüş, ıstakanın yerel +z yönünü masanın ortasına çevirir.
   const KOLTUK = [
-    { x: 0, z: 4.1, don: Math.PI },        // alt (ben)
-    { x: 4.1, z: 0, don: -Math.PI / 2 },   // sağ
-    { x: 0, z: -4.1, don: 0 },             // üst
-    { x: -4.1, z: 0, don: Math.PI / 2 },   // sol
+    { x: 0, z: 3.85, don: Math.PI },        // alt (ben)
+    { x: 3.85, z: 0, don: -Math.PI / 2 },   // sağ
+    { x: 0, z: -3.85, don: 0 },             // üst
+    { x: -3.85, z: 0, don: Math.PI / 2 },   // sol
   ];
 
   // Atılan taşların köşeleri (koltuğa göre). Sıra saatin tersine: ben (alt) → sağ → üst → sol.
@@ -272,21 +285,27 @@ const Sahne = (() => {
     grupKutulari = [];
     istakalariKur(g.koltuklar.map(k => k.ad), g.koltuklar.map(k => k.renk));
 
-    // Rakiplerin ıstakalarındaki ters taşlar
+    // Rakiplerin ıstakalarındaki ters taşlar: üst basamakta 8, alt basamakta 6, sırta yaslanmış.
+    // Karşıdakinin taşları daha dik durur; yandakiler yukarıdan görünsün diye biraz daha yatıktır.
     g.koltuklar.forEach((k, koltuk) => {
       if (koltuk === 0) return;
       const yer = KOLTUK[koltuk];
-      const n = 14;  // rakibin kaç taşı kaldığı belli olmasın: hep aynı sayıda taş görünür
-      for (let i = 0; i < n; i++) {
-        const t = dikTas();
-        const u = (i - (n - 1) / 2) * 0.32;
-        const yerel = V(u, 0.3, 0.1).applyAxisAngle(V(0, 1, 0), yer.don);
-        t.position.set(yer.x + yerel.x, yerel.y, yer.z + yerel.z);
-        // Sırtı masanın ortasına (bize) dönük, panoya hafif yaslanmış
-        t.rotation.set(0, yer.don, 0);
-        t.rotateX(-0.75);
-        dinamik.add(t);
-      }
+      const egim = koltuk === 2 ? 0.22 : 0.6;
+      [[UST_SIRA, 8], [ALT_SIRA, 6]].forEach(([sira, n]) => {
+        for (let i = 0; i < n; i++) {
+          const ayak = new THREE.Group();   // taşın basamağa değen alt kenarı
+          const yerel = V((i - (n - 1) / 2) * 0.33, sira.y, sira.z).applyAxisAngle(V(0, 1, 0), yer.don);
+          ayak.position.set(yer.x + yerel.x, yerel.y, yer.z + yerel.z);
+          ayak.rotation.set(0, yer.don, 0);
+          const yaslan = new THREE.Group();
+          yaslan.rotation.x = -egim;
+          const t = dikTas();
+          t.position.y = 0.215;
+          yaslan.add(t);
+          ayak.add(yaslan);
+          dinamik.add(ayak);
+        }
+      });
     });
 
     // Ortada deste ve gösterge
