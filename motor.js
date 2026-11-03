@@ -204,7 +204,11 @@ const Motor = (() => {
     if (p.acti) {
       if (p.acisTuru !== tur) return hata(p.acisTuru === 'cift' ? 'Çift açtın: yere sadece çift koyabilirsin.' : 'Seri açtın: yere çift koyamazsın.');
     } else {
-      if (tur === 'cift') {
+      // Bütün el dizili ve tek taş kalıyorsa 51'in (ve katlamanın) altında da açılır: son taşı atınca biter
+      const butunEl = gruplar.reduce((a, g) => a + g.sirali.length, 0) === p.el.length - 1;
+      if (butunEl) {
+        // sınır yok
+      } else if (tur === 'cift') {
         if (gruplar.length < K.CIFT_SAYISI) return hata(`Çift açmak için en az ${K.CIFT_SAYISI} çift lazım (sende ${gruplar.length}).`);
         if (!kimseAcmadi() && sonuc.deger < gereken()) return hata(`Çiftlerin toplamı ${sonuc.deger}. En az ${gereken()} olmalı.`);
       } else if (sonuc.deger < gereken()) {
@@ -516,7 +520,8 @@ const Motor = (() => {
     if (!p.acti) {
       const g = K.enIyiGruplar(p.el, o.okey);
       const c = K.enIyiCiftler(p.el, o.okey);
-      if (g.deger >= gereken()) ac(no, 'seri');
+      // 51'i geçiyorsa ya da bütün el dizili ve tek taş kalıyorsa (o zaman açıp biter) aç
+      if (g.deger >= gereken() || g.kalan.length === 1) ac(no, 'seri');
       else if (c.ciftler.length >= K.CIFT_SAYISI + 1 && (kimseAcmadi() || c.deger >= gereken())) ac(no, 'cift');
       if (!devam()) return;
       if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no, true);
