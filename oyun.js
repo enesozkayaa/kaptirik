@@ -334,7 +334,7 @@ function sayaciGoster(kalan, toplam) {
 }
 
 // Rakip kartları ıstakalarının dış yanında durur (ekran dışına taşmasın, üst çubuğun altına girmesin)
-const KART_YERI = { 1: { x: 4.45, y: 0.5, z: 0 }, 2: { x: 0, y: 0.5, z: -4.5 }, 3: { x: -4.45, y: 0.5, z: 0 } };
+const KART_YERI = { 1: { x: 4.45, y: 0.5, z: 0 }, 2: { x: 3.4, y: 0.5, z: -4.05 }, 3: { x: -4.45, y: 0.5, z: 0 } };  // karşıdakinin kartı ıstakanın sağ ucunda (yazıyı kapatmasın)
 function kartlariYerlestir() {
   const ustAlt = $('ust').getBoundingClientRect().bottom;
   [1, 2, 3].forEach(k => {

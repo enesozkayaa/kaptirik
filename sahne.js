@@ -168,7 +168,7 @@ const Sahne = (() => {
 
   // ---------- Istaka ----------
   // Masanın ortasına bakan dik ahşap pano; arkasında (sahibinin tarafında) iki üçgen destek ayağı.
-  // Taşlar panonun arkasında kalır, rakibin taşları görünmez. Oyuncunun adı panonun ön yüzüne kazılı.
+  // Taşlar panonun arkasında kalır, rakibin taşları görünmez. Panonun ön yüzüne oyunun adı (KAPTİRİK) kazılı.
   // Yerel eksenler: +x ıstaka boyunca, +z masanın ortasına doğru, sahibi -z tarafında oturur.
   const ISTAKA_BOY = 4.6, ISTAKA_YUK = 0.75;
   function ahsapDokusu(gen, yuk, yaz) {
@@ -195,18 +195,16 @@ const Sahne = (() => {
   function istaka(ad, renk) {
     const grup = new THREE.Group();
     const onYuz = ahsapDokusu(1024, 168, (g, w, h) => {
-      // Kazılı ad: koyu oyuk + alt kenarında ışık
-      g.font = 'bold 74px Georgia, serif';
+      // Kazılı oyun adı: koyu oyuk + alt kenarında ışık, harfler aralıklı
+      const yazi = 'KAPTİRİK';
+      g.font = 'bold 82px Georgia, serif';
       g.textAlign = 'center';
       g.textBaseline = 'middle';
+      if ('letterSpacing' in g) g.letterSpacing = '14px';
       g.fillStyle = 'rgba(255,225,170,0.5)';
-      g.fillText(ad, w / 2 + 2, h / 2 + 3);
+      g.fillText(yazi, w / 2 + 2, h / 2 + 3);
       g.fillStyle = 'rgba(95,40,8,0.85)';
-      g.fillText(ad, w / 2, h / 2);
-      g.fillStyle = renk;
-      g.beginPath();
-      g.arc(w / 2 - g.measureText(ad).width / 2 - 40, h / 2, 16, 0, Math.PI * 2);
-      g.fill();
+      g.fillText(yazi, w / 2, h / 2);
     });
     const duz = new THREE.MeshStandardMaterial({ map: ahsapDokusu(512, 64), roughness: 0.55 });
     const onMalz = new THREE.MeshStandardMaterial({ map: onYuz, roughness: 0.5 });
