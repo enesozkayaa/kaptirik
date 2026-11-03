@@ -152,29 +152,34 @@ details li { margin: 4px 0; }
 
 #atilanListe { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 12px; }
 #atilanKapat { width: 100%; }
-/* El el puan tablosu */
-#elSonuTablo { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; table-layout: fixed; }
-#elSonuTablo thead th { position: sticky; top: -20px; background: #141e18; z-index: 1; }
-#elSonuTablo th, #elSonuTablo td { padding: 5px 3px; text-align: center; border-bottom: 1px solid #ffffff1a; vertical-align: middle; }
-#elSonuTablo th:first-child, #elSonuTablo td:first-child { width: 42px; color: #f6d58a; font-weight: 700; }
-#elSonuTablo th { font-size: 11px; font-weight: 600; }
+/* El el puan tablosu: oyuncu başına Ceza | Düşer sütunları, altında toplam */
+#elSonuTablo { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11.5px; table-layout: fixed; }
+#elSonuTablo th, #elSonuTablo td { padding: 3px 1px; text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; }
+#elSonuTablo thead th { position: sticky; background: #141e18; z-index: 1; }
+#elSonuTablo thead tr:first-child th { top: -20px; }
+#elSonuTablo thead tr.altBaslik th { top: 26px; font-size: 9.5px; font-weight: 700; border-bottom: 1px solid #ffffff33; }
+#elSonuTablo th.elBas, #elSonuTablo td.elNo { width: 38px; color: #f6d58a; font-weight: 700; }
+#elSonuTablo th.oyuncu { font-size: 10.5px; font-weight: 600; border-left: 1px solid #ffffff1a; }
 #elSonuTablo th .harf {
-  display: grid; place-items: center; width: 24px; height: 24px; margin: 0 auto 2px; border-radius: 50%;
-  color: #fff; font-weight: 800; font-size: 12px; text-shadow: 0 1px 2px #0008;
+  display: grid; place-items: center; width: 22px; height: 22px; margin: 0 auto 2px; border-radius: 50%;
+  color: #fff; font-weight: 800; font-size: 11px; text-shadow: 0 1px 2px #0008;
 }
-#elSonuTablo th .isim { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#elSonuTablo th.ben { background: #f6d58a22; border-radius: 8px 8px 0 0; }
-#elSonuTablo td span { display: block; font-size: 11px; line-height: 1.2; }
-#elSonuTablo td b { display: block; font-size: 14px; margin-top: 1px; }
-#elSonuTablo .arti { color: #ff8a8a; }
-#elSonuTablo .eksi { color: #7dff9b; }
-#elSonuTablo .sifir { opacity: .4; }
+#elSonuTablo th .isim { display: block; overflow: hidden; text-overflow: ellipsis; }
+#elSonuTablo th.ben { background: #2c2a1c; }
+#elSonuTablo .arti { color: #ff6b6b; font-weight: 700; }
+#elSonuTablo .eksi { color: #7dff9b; font-weight: 700; }
+#elSonuTablo .sifir { opacity: .4; font-weight: 400; }
+#elSonuTablo tr.elSatiri td { padding-top: 5px; font-size: 10px; letter-spacing: -.2px; }
+#elSonuTablo tr.elSatiri td.elNo { border-bottom: 1px solid #ffffff1a; }
+#elSonuTablo tr.puanSatiri td { font-size: 13px; font-weight: 800; padding-bottom: 5px; border-bottom: 1px solid #ffffff1a; }
+#elSonuTablo tr.puanSatiri td.sifir { font-weight: 400; }
+#elSonuTablo td:nth-child(2n+2), #elSonuTablo tr.puanSatiri td { border-left: 1px solid #ffffff12; }
 #elSonuTablo tr.suren td { background: #ffffff0a; }
-#elSonuTablo tr.oynanmadi td { opacity: .55; }
-#elSonuTablo b.sifir { font-weight: 400; }
-#elSonuTablo tr.suren td.elNo::after { content: ' ⏳'; font-size: 10px; }
-#elSonuTablo .toplamSatir td { border-top: 2px solid #f6d58a66; border-bottom: 0; padding-top: 8px; }
-#elSonuTablo .toplamSatir td b { font-size: 15px; color: #f6d58a; white-space: nowrap; }
+#elSonuTablo tr.suren td.elNo::after { content: ' ⏳'; font-size: 9px; }
+#elSonuTablo tr.oynanmadi td { opacity: .5; }
+#elSonuTablo .toplamSatir td { border-top: 2px solid #f6d58a66; padding-top: 8px; }
+#elSonuTablo .toplamSatir td:first-child { font-size: 10px; color: #f6d58a; font-weight: 700; }
+#elSonuTablo .toplamSatir td b { font-size: 14px; color: #f6d58a; white-space: nowrap; }
 #elSonuDetay ul { font-size: 13px; padding-left: 16px; margin: 0; }
 .listeler { display: flex; gap: 10px; }
 .liste { flex: 1; min-width: 0; background: #ffffff0d; border-radius: 10px; padding: 8px; }
@@ -237,3 +242,4 @@ details li { margin: 4px 0; }
   width: 16px; height: 16px; display: grid; place-items: center; box-shadow: 0 0 0 2px #140f0b;
 }
 .koltuk .uyku { position: absolute; left: -6px; top: -6px; font-size: 12px; filter: drop-shadow(0 1px 2px #000); }
+#elSonu .kart { padding-left: 12px; padding-right: 12px; }
