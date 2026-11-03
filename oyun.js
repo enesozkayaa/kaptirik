@@ -557,7 +557,8 @@ function birak(s, x, y) {
     return;
   }
   if (s.grup.length > 1) return;  // grup sadece ıstakada taşınır
-  if (!ust || ust.closest('#alt, #ust')) return;  // ıstaka dışı ama masada değil: geri döner
+  // Düğmenin ya da üst çubuğun üstüne bırakıldıysa geri döner; alttaki boş yerler masa sayılır
+  if (!ust || ust.closest('button, #istaka, #ust')) return;
   const n = Sahne.noktada(x, y);
   const sonTas = benim().el.length === 1;
   // Öncelik: köşeye yakınsa at; değilse taşın uyduğu gruba (üstündeki ya da en yakın) işle.
