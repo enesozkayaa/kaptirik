@@ -635,7 +635,6 @@ function masaDokunus(h) {
 
 function atilanlariGoster(no) {
   const p = Motor.oyun.oyuncular[no];
-  $('atilanBaslik').textContent = `${p.ad} attıkları (eskiden yeniye)`;
   $('atilanListe').innerHTML = p.atilanlar.length ? p.atilanlar.map(t => tasHtml(t, { mini: true })).join('') : '<p>Henüz taş atmadı.</p>';
   $('atilanEkrani').hidden = false;
 }
