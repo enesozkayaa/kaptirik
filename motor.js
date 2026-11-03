@@ -97,14 +97,21 @@ const Motor = (() => {
     }, 1000);
   }
 
-  // Süre bitince: ortadan çek (yandan alınan geri bırakılır), elindeki en küçük taşı at
+  // Süre bitince: ortadan çek (yandan alınan geri bırakılır), per/seri/çiftine girmeyen en küçük taşı at
   function sureBitti(no) {
     const p = o.oyuncular[no];
     if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no);
     if (!o.tur.cekti) ortadanCek(no);
     if (o.asama !== 'oyun' || o.sira !== no) return;
     olay('sureBitti', { no });
-    at(no, enKotuTas(p).id);
+    at(no, enKucukBosTas(p).id);
+  }
+
+  function enKucukBosTas(p) {
+    const kalan = (p.acisTuru === 'cift' ? K.enIyiCiftler(p.el, o.okey) : K.enIyiGruplar(p.el, o.okey)).kalan;
+    const adaylar = kalan.filter(t => !K.jokerMi(t, o.okey));
+    const liste = adaylar.length ? adaylar : (kalan.length ? kalan : p.el);
+    return liste.reduce((a, t) => (K.deger(t, o.okey) < K.deger(a, o.okey) ? t : a));
   }
 
   // ---------- Hamleler ----------
@@ -202,6 +209,9 @@ const Motor = (() => {
     } else {
       olay('koydu', { no, tur, deger: sonuc.deger });
     }
+    // Açınca (ya da yere koyunca) düşünmek için süre baştan başlar
+    o.tur.kalan = TUR_SURESI;
+    olay('sure', { kalan: o.tur.kalan, no });
     degisti();
     elBittiMi(no, false);
     return tamam({ deger: sonuc.deger });

@@ -6,7 +6,7 @@
 // Okey: göstergenin bir üstü (13'ün üstü 1). Okey taşları her taşın yerine geçer (joker).
 // Sahte okey: okeyin "kendisi" gibi davranır (okeyin rengi ve sayısındaki normal bir taş).
 // Per:  aynı sayı, farklı renk, 3-4 taş (7-7-7).
-// Seri: aynı renk, ardışık, en az 3 taş (4-5-6). 12-13-1 olur, 13-1-2 olmaz.
+// Seri: aynı renk, ardışık, en az 3 taş (4-5-6). 1 sadece başta olur: 12-13-1 ve 13-1-2 olmaz.
 // Çift: aynı iki taş (renk ve sayı aynı). Okey her taşla çift olur.
 // =============================================================
 
@@ -57,9 +57,6 @@ const Kurallar = (() => {
     return { tur: 'per', deger: sayi * taslar.length, sirali, temsil };
   }
 
-  // Serideki konum: 1..13, 14 = 13'ten sonra gelen 1
-  const konumDegeri = p => (p === 14 ? 1 : p);
-
   function seriCoz(taslar, okey) {
     const n = taslar.length;
     if (n < 3 || n > 13) return null;
@@ -68,31 +65,20 @@ const Kurallar = (() => {
     if (!normal.length) return null;
     const renk = etkin(normal[0], okey).renk;
     if (normal.some(t => etkin(t, okey).renk !== renk)) return null;
-    let enIyi = null;
-    // 1'i hem baş (1) hem son (14) olarak dene
-    for (const birYuksek of [false, true]) {
-      const konumlar = normal.map(t => {
-        const s = etkin(t, okey).sayi;
-        return s === 1 && birYuksek ? 14 : s;
-      });
-      if (new Set(konumlar).size !== konumlar.length) continue;
-      const min = Math.min(...konumlar), max = Math.max(...konumlar);
-      if (max - min + 1 > n) continue;
-      // Jokerler en yüksek değeri verecek şekilde yerleşir (seri olabildiğince yukarı kayar)
-      for (let bas = Math.min(min, 15 - n); bas >= Math.max(1, max - n + 1); bas--) {
-        if (bas + n - 1 > 14) continue;
-        const deger = Array.from({ length: n }, (_, k) => konumDegeri(bas + k)).reduce((a, b) => a + b, 0);
-        if (!enIyi || deger > enIyi.deger) enIyi = { bas, deger, konumlar };
-        break;
-      }
-    }
-    if (!enIyi) return null;
+    const konumlar = normal.map(t => etkin(t, okey).sayi);
+    if (new Set(konumlar).size !== konumlar.length) return null;
+    const min = Math.min(...konumlar), max = Math.max(...konumlar);
+    if (max - min + 1 > n) return null;
+    // Jokerler en yüksek değeri verecek şekilde yerleşir (seri olabildiğince yukarı kayar, 13'ü geçemez)
+    const bas = Math.min(min, 14 - n);
+    if (bas < 1) return null;
+    const enIyi = { bas, deger: n * bas + (n * (n - 1)) / 2, konumlar };
     const sirali = [], temsil = [];
     const kalanJoker = [...jokerler];
     for (let p = enIyi.bas; p < enIyi.bas + n; p++) {
       const k = enIyi.konumlar.indexOf(p);
       sirali.push(k >= 0 ? normal[k] : kalanJoker.shift());
-      temsil.push({ renk, sayi: konumDegeri(p) });
+      temsil.push({ renk, sayi: p });
     }
     return { tur: 'seri', deger: enIyi.deger, sirali, temsil };
   }
@@ -133,12 +119,12 @@ const Kurallar = (() => {
     // Aday gruplar: { gerek: [anahtar...], joker, deger }
     const adaylar = [];
     for (let r = 0; r < 4; r++) {
-      for (let bas = 1; bas <= 12; bas++) {
-        for (let n = 3; bas + n - 1 <= 14 && n <= 13; n++) {
+      for (let bas = 1; bas <= 11; bas++) {
+        for (let n = 3; bas + n - 1 <= 13; n++) {
           const gerek = [];
           let joker = 0, deger = 0;
           for (let p = bas; p < bas + n; p++) {
-            const s = konumDegeri(p);
+            const s = p;
             deger += s;
             if (var_(r, s)) gerek.push(anahtar(r, s));
             else joker++;
@@ -242,14 +228,15 @@ const Kurallar = (() => {
 
   // ---------- İşleme ----------
   // Bu taş masadaki bu gruba işlenebilir mi? Okeyin yerine gerçek taş konuyorsa "takas" döner.
+  // Çiftlere taş eklenmez ama içindeki okey gerçek taşla takas edilebilir.
   function isleme(grup, tas, okey) {
-    if (grup.tur === 'cift') return null;
     // Takas: grupta, bu taşın yerine geçen bir okey varsa
     const e = etkin(tas, okey);
     if (!jokerMi(tas, okey)) {
       const yer = grup.temsil.findIndex((tm, k) => jokerMi(grup.sirali[k], okey) && tm.renk === e.renk && tm.sayi === e.sayi);
       if (yer >= 0) return { takas: true, yer };
     }
+    if (grup.tur === 'cift') return null;
     const yeni = grupCoz([...grup.sirali, tas], okey);
     if (!yeni || yeni.tur !== grup.tur) return null;
     return { takas: false, yeni };

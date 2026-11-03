@@ -15,6 +15,7 @@ const Sahne = (() => {
   const fare = new THREE.Vector2();
   let tiklaninca = () => {};
   let tiklanabilir = [];
+  let masadaBasildi = false;
   const bakis = { konum: V(0, 8.6, 5.6), hedef: V(0, 0, 0.5) };
 
   // ---------- Kurulum ----------
@@ -46,7 +47,12 @@ const Sahne = (() => {
 
     boyutla();
     window.addEventListener('resize', boyutla);
-    renderer.domElement.addEventListener('pointerup', tikla);
+    // Sadece masada başlayan dokunuşlar sayılır (ıstakadan sürüklenip bırakılan taş tıklama sayılmaz)
+    renderer.domElement.addEventListener('pointerdown', () => (masadaBasildi = true));
+    renderer.domElement.addEventListener('pointerup', e => {
+      if (masadaBasildi) tikla(e);
+      masadaBasildi = false;
+    });
     renderer.setAnimationLoop(() => {
       kamera.position.copy(bakis.konum);
       kamera.lookAt(bakis.hedef);
@@ -163,10 +169,10 @@ const Sahne = (() => {
   // Istakada dik duran rakip taşı (sırtı bize dönük)
   function dikTas() {
     const grup = new THREE.Group();
-    const govde = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.33, 0.06), govdeMalz);
+    const govde = new THREE.Mesh(new THREE.BoxGeometry(0.31, 0.43, 0.07), govdeMalz);
     govde.castShadow = true;
-    const sirt = new THREE.Mesh(new THREE.PlaneGeometry(0.23, 0.32), new THREE.MeshStandardMaterial({ map: tasSirti(), roughness: 0.5 }));
-    sirt.position.z = 0.031;
+    const sirt = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.42), new THREE.MeshStandardMaterial({ map: tasSirti(), roughness: 0.5 }));
+    sirt.position.z = 0.036;
     grup.add(govde, sirt);
     return grup;
   }
@@ -201,10 +207,10 @@ const Sahne = (() => {
     const arkaMalz = new THREE.MeshStandardMaterial({ map: ahsap, roughness: 0.6 });
     // Raf (taşlar üstünde durur) ve masanın ortasına bakan pano (yerel +z yönü = masanın ortası).
     // Panonun ortaya bakan yüzüne oyuncunun adı kazılı; taşların üst kısmı panonun üstünden görünür.
-    const raf = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.08, 0.55), malz);
+    const raf = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.08, 0.6), malz);
     raf.position.set(0, 0.04, 0);
-    const pano = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.3, 0.08), [malz, malz, malz, malz, arkaMalz, malz]);
-    pano.position.set(0, 0.19, 0.26);
+    const pano = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.32, 0.08), [malz, malz, malz, malz, arkaMalz, malz]);
+    pano.position.set(0, 0.2, 0.28);
     raf.castShadow = pano.castShadow = true;
     grup.add(raf, pano);
     return grup;
@@ -217,6 +223,31 @@ const Sahne = (() => {
     { x: 0, z: -4.1, don: 0 },             // üst
     { x: -4.1, z: 0, don: Math.PI / 2 },   // sol
   ];
+
+  // Atılan taşların köşeleri (koltuğa göre). Sıra: ben (alt) → sol → üst → sağ.
+  // Ben sol alt köşeye atarım; sağdaki oyuncu sağ alt köşeye atar, ben oradan alırım.
+  const KOSE = [[-3.15, 3.15], [3.15, 3.15], [3.15, -3.15], [-3.15, -3.15]];
+  const DESTE = V(-0.42, 0, 0);
+  const BUYUK = 1.6;  // deste ve gösterge taşları
+
+  // Kalan taş sayısı için yuvarlak etiket
+  const etiketler = new Map();
+  function sayiEtiketi(n) {
+    if (etiketler.has(n)) return etiketler.get(n);
+    const d = dokuKanvas(140, 100, (g, w, h) => {
+      g.fillStyle = 'rgba(0,0,0,0.75)';
+      g.beginPath();
+      g.roundRect(4, 4, w - 8, h - 8, 40);
+      g.fill();
+      g.fillStyle = '#f6d58a';
+      g.font = 'bold 60px Arial, sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(n, w / 2, h / 2 + 3);
+    });
+    etiketler.set(n, d);
+    return d;
+  }
 
   let istakaAnahtari = '';
   function istakalariKur(adlar, renkler) {
@@ -247,12 +278,12 @@ const Sahne = (() => {
       const n = Math.min(k.tasSayisi, 16);
       for (let i = 0; i < n; i++) {
         const t = dikTas();
-        const u = (i - (n - 1) / 2) * 0.25;
-        const yerel = V(u, 0.25, 0.1).applyAxisAngle(V(0, 1, 0), yer.don);
+        const u = (i - (n - 1) / 2) * 0.32;
+        const yerel = V(u, 0.3, 0.1).applyAxisAngle(V(0, 1, 0), yer.don);
         t.position.set(yer.x + yerel.x, yerel.y, yer.z + yerel.z);
         // Sırtı masanın ortasına (bize) dönük, panoya hafif yaslanmış
         t.rotation.set(0, yer.don, 0);
-        t.rotateX(0.18);
+        t.rotateX(-0.75);
         dinamik.add(t);
       }
     });
@@ -261,35 +292,41 @@ const Sahne = (() => {
     const deste = new THREE.Group();
     const kat = Math.max(1, Math.min(10, Math.ceil(g.desteSayisi / 6)));
     for (let k = 0; k < kat; k++) {
-      const t = yatanTas(null, true, 1.15);
+      const t = yatanTas(null, true, BUYUK);
       t.position.y = k * TAS_K;
       deste.add(t);
     }
-    deste.position.set(-0.3, 0, 0);
+    // Destenin üstünde kalan taş sayısı
+    const etiket = new THREE.Sprite(new THREE.SpriteMaterial({ map: sayiEtiketi(g.desteSayisi), depthTest: false }));
+    etiket.scale.set(0.42, 0.3, 1);
+    etiket.position.set(0, kat * TAS_K + 0.28, 0);
+    etiket.renderOrder = 5;
+    deste.add(etiket);
+    deste.position.copy(DESTE);
     deste.traverse(m => (m.userData.tik = { tur: 'deste' }));
     tiklanabilir.push(deste);
     dinamik.add(deste);
     if (g.gosterge) {
-      const gost = yatanTas(g.gosterge, false, 1.15);
-      gost.position.set(0.3, 0, 0);
+      const gost = yatanTas(g.gosterge, false, BUYUK);
+      gost.position.set(0.42, 0, 0);
       gost.rotation.y = 0.15;
       dinamik.add(gost);
     }
 
-    // Köşelerde atılan taşlar: her oyuncu sağındaki köşeye atar
-    const KOSE = [[3.0, 3.0], [3.0, -3.0], [-3.0, -3.0], [-3.0, 3.0]];
+    // Köşelerde atılan taşlar: her oyuncu solundaki köşeye atar, sıradaki oyuncu oradan alır
     g.koltuklar.forEach((k, koltuk) => {
       const [x, z] = KOSE[koltuk];
       const yigin = new THREE.Group();
-      const son = k.atilanlar.slice(-3);
+      const son = k.atilanlar.slice(-2);
       son.forEach((t, i) => {
-        const m = yatanTas(t, false, 1.2);
-        m.position.set(i * 0.05, i * TAS_K, -i * 0.05);
-        m.rotation.y = (i - 1) * 0.12;
+        const m = yatanTas(t, false, 1.75);
+        const ust = i === son.length - 1;
+        m.position.set(ust ? 0 : -0.12, i * TAS_K, ust ? 0 : -0.1);
+        m.rotation.y = ust ? 0.05 : -0.2;
         yigin.add(m);
       });
       if (!son.length) {  // boş yer işareti
-        const halka = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.24, 24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 }));
+        const halka = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.35, 28), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 }));
         halka.rotation.x = -Math.PI / 2;
         halka.position.y = 0.01;
         yigin.add(halka);
@@ -302,15 +339,15 @@ const Sahne = (() => {
 
     // Açılan gruplar: her oyuncunun grupları kendi önündeki alana dizilir (taşlar bize doğru okunur)
     const ALAN = [
-      { x0: -2.6, x1: 2.6, z0: 1.0, satir: 0.5 },    // alt
-      { x0: 0.75, x1: 2.75, z0: -0.85, satir: 0.5 },  // sağ
-      { x0: -2.6, x1: 2.6, z0: -2.4, satir: 0.5 },    // üst
-      { x0: -2.75, x1: -0.75, z0: -0.85, satir: 0.5 }, // sol
+      { x0: -2.9, x1: 2.9, z0: 1.0, satir: 0.6 },     // alt
+      { x0: 0.8, x1: 3.0, z0: -1.0, satir: 0.6 },     // sağ
+      { x0: -2.9, x1: 2.9, z0: -2.45, satir: 0.6 },   // üst
+      { x0: -3.0, x1: -0.8, z0: -1.0, satir: 0.6 },   // sol
     ];
-    const M = 1.25;  // açılan taşlar biraz büyük olsun, okunsun
+    const M = 1.55;  // açılan taşlar büyük olsun, okunsun
     const AR = TAS_G * M + 0.01;
     const koltugaGore = [[], [], [], []];
-    g.masa.forEach(gr => koltugaGore[(gr.sahip - g.benimNo + 4) % 4].push(gr));
+    g.masa.forEach(gr => koltugaGore[g.koltukNo(gr.sahip)].push(gr));
     koltugaGore.forEach((liste, koltuk) => {
       const a = ALAN[koltuk];
       let x = a.x0, z = a.z0;
@@ -350,10 +387,10 @@ const Sahne = (() => {
     renderer.setSize(w, h);
     kamera.aspect = w / h;
     kamera.updateProjectionMatrix();
-    // Dik telefonda masayı sığdırmak için geri çekil
-    const k = kamera.aspect < 1 ? Math.min(2.1, 1.15 / kamera.aspect) : 1;
+    // Dik telefonda masayı sığdırmak için geri çekil (kenardaki tahta biraz taşabilir, taşlar büyük görünsün)
+    const k = kamera.aspect < 1 ? Math.min(1.9, 0.98 / kamera.aspect) : 1;
     bakis.konum.set(0, 10.4 * k, 6.2 * k);
-    bakis.hedef.set(0, 0, 1.5 + (k - 1) * 1.1);
+    bakis.hedef.set(0, 0, 1.1 + (k - 1) * 0.35);
   }
 
   function tikla(e) {
@@ -364,8 +401,41 @@ const Sahne = (() => {
     if (vurulan?.object.userData.tik) tiklaninca(vurulan.object.userData.tik);
   }
 
+  // Masadaki bir yerin ekrandaki konumu (taş uçurma animasyonu için)
+  function ekranda(yer) {
+    const v = yer === 'deste' ? DESTE.clone().setY(0.3) : V(KOSE[yer][0], 0.1, KOSE[yer][1]);
+    v.project(kamera);
+    const kutu = renderer.domElement.getBoundingClientRect();
+    return { x: kutu.left + (v.x + 1) / 2 * kutu.width, y: kutu.top + (1 - v.y) / 2 * kutu.height };
+  }
+
+  // Ekrandaki noktada ne var? (sürüklenen taş bırakılınca) { tik, x, z }
+  function noktada(cx, cy) {
+    const kutu = renderer.domElement.getBoundingClientRect();
+    fare.set(((cx - kutu.left) / kutu.width) * 2 - 1, -((cy - kutu.top) / kutu.height) * 2 + 1);
+    isin.setFromCamera(fare, kamera);
+    const vurulan = isin.intersectObjects(tiklanabilir, true)[0];
+    const duz = new THREE.Plane(V(0, 1, 0), 0);
+    const p = isin.ray.intersectPlane(duz, V());
+    return { tik: vurulan?.object.userData.tik ?? null, x: p?.x ?? 0, z: p?.z ?? 0 };
+  }
+
+  // Taş sürüklenirken atma yerini parlat
+  let atmaHalkasi;
+  function atmaYeri(goster, yakin = false) {
+    if (!atmaHalkasi) {
+      atmaHalkasi = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.62, 36), new THREE.MeshBasicMaterial({ color: 0x5dff8a, transparent: true, opacity: 0.7, depthWrite: false }));
+      atmaHalkasi.rotation.x = -Math.PI / 2;
+      atmaHalkasi.position.set(KOSE[0][0], 0.02, KOSE[0][1]);
+      sahne.add(atmaHalkasi);
+    }
+    atmaHalkasi.visible = goster;
+    atmaHalkasi.material.opacity = yakin ? 1 : 0.55;
+    atmaHalkasi.scale.setScalar(yakin ? 1.25 : 1);
+  }
+
   return {
-    RENKLER, baslat, ciz, tasYuzu,
+    RENKLER, KOSE, baslat, ciz, tasYuzu, ekranda, noktada, atmaYeri,
     tiklayinca(fn) { tiklaninca = fn; },
   };
 })();

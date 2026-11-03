@@ -39,7 +39,7 @@
       <details>
         <summary>Kurallar kısaca</summary>
         <ul>
-          <li>Başlayan 15, diğerleri 14 taş alır. Ortadan ya da soldakinin attığından (yandan) çekip bir taş atarsın.</li>
+          <li>Başlayan 15, diğerleri 14 taş alır. Ortadaki desteye dokunarak ya da sağındakinin attığı taşa dokunarak (yandan) taş alırsın. Atmak için taşı sol alttaki köşeye sürüklersin.</li>
           <li>İlk açış <b>51</b>. Sonra açan bir öncekinden fazlasını yapmalı (katlamalı). En az 4 çiftle de açılır.</li>
           <li>Yandan taş ancak o tur açacaksan alınır. Açınca taşı veren seride ×10, çiftte ×20 ceza yer.</li>
           <li>İşlek taş atmak 500, açamamak 1000 ceza. Elde kalan × 10 ceza.</li>
@@ -57,16 +57,18 @@
       <span id="elBilgi"></span>
       <span id="gostergeKutu"></span>
       <span id="esik"></span>
-      <span id="desteBilgi"></span>
+      <!-- Rakipler: solumdaki (benden sonra oynar), karşımdaki, sağımdaki (ondan taş alırım) -->
+      <div id="rakipler">
+        <div id="koltuk3" class="koltuk"></div>
+        <div id="koltuk2" class="koltuk"></div>
+        <div id="koltuk1" class="koltuk"></div>
+      </div>
       <button id="puanBtn" title="Puanlar">📊</button>
       <button id="sesBtn" title="Ses">🔊</button>
     </header>
-    <div id="koltuk1" class="koltuk"></div>
-    <div id="koltuk2" class="koltuk"></div>
-    <div id="koltuk3" class="koltuk"></div>
+    <div id="sureCubuguKap"><div id="sureCubugu"></div></div>
     <div id="mesaj" hidden></div>
     <footer id="alt">
-      <div id="sureCubuguKap"><div id="sureCubugu"></div></div>
       <div id="koltuk0" class="koltuk"></div>
       <div id="eylemler"></div>
       <div id="istaka"></div>

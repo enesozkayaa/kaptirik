@@ -1,10 +1,13 @@
 // =============================================================
 // Kaptirik - sesler (hepsi o an üretilir, ses dosyası yok)
+// Taş sesi: sert plastik taşın ahşaba/çuhaya vuruşu. Birkaç tını (taşın kendi çınlaması),
+// çok kısa bir "tık" ve masanın tok "tak"ı birlikte çalınır; her vuruş biraz farklı olsun diye
+// frekanslar her seferinde hafifçe oynatılır.
 // =============================================================
 
 const Ses = (() => {
   const ANAHTAR = 'kaptirik.ses';
-  let ctx = null, ana = null, acik = true, tampon = null;
+  let ctx = null, ana = null, acik = true, gurultu = null;
   try {
     acik = localStorage.getItem(ANAHTAR) !== 'kapali';
   } catch (e) { /* açık başlar */ }
@@ -15,76 +18,124 @@ const Ses = (() => {
       ana = ctx.createGain();
       ana.gain.value = acik ? 0.9 : 0;
       ana.connect(ctx.destination);
+      gurultu = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+      const v = gurultu.getChannelData(0);
+      for (let i = 0; i < v.length; i++) v[i] = Math.random() * 2 - 1;
     }
     if (ctx.state === 'suspended') ctx.resume();
     return ctx;
   }
 
-  function ton(f, { gecikme = 0, sure = 0.12, tip = 'sine', seviye = 0.12, bitis } = {}) {
-    const c = motor();
-    const t = c.currentTime + gecikme;
-    const o = c.createOscillator();
-    const g = c.createGain();
-    o.type = tip;
-    o.frequency.setValueAtTime(f, t);
-    if (bitis) o.frequency.exponentialRampToValueAtTime(bitis, t + sure);
+  const oyna = (a, b) => a + Math.random() * (b - a);
+
+  // Filtrelenmiş gürültü parçası
+  function hisirti(t, { sure, tip, frekans, q = 1, seviye, atak = 0.001 }) {
+    const k = ctx.createBufferSource();
+    k.buffer = gurultu;
+    const f = ctx.createBiquadFilter();
+    f.type = tip;
+    f.frequency.value = frekans;
+    f.Q.value = q;
+    const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(seviye, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(seviye, t + atak);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + sure);
+    k.connect(f);
+    f.connect(g);
+    g.connect(ana);
+    k.start(t, Math.random() * 0.3);
+    k.stop(t + sure + 0.02);
+  }
+
+  // Kısa çınlama
+  function tini(t, f, sure, seviye) {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.frequency.value = f;
+    g.gain.setValueAtTime(seviye, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + sure);
     o.connect(g);
     g.connect(ana);
     o.start(t);
-    o.stop(t + sure + 0.05);
+    o.stop(t + sure + 0.02);
   }
 
-  // Taşların masaya vurduğu "tık": kısa, tok bir gürültü
-  function tak({ gecikme = 0, seviye = 0.3, frekans = 2200 } = {}) {
-    const c = motor();
-    if (!tampon) {
-      tampon = c.createBuffer(1, c.sampleRate * 0.3, c.sampleRate);
-      const v = tampon.getChannelData(0);
-      for (let i = 0; i < v.length; i++) v[i] = (Math.random() * 2 - 1) * Math.exp(-i / (c.sampleRate * 0.012));
-    }
-    const t = c.currentTime + gecikme;
-    const k = c.createBufferSource();
-    k.buffer = tampon;
-    const f = c.createBiquadFilter();
-    f.type = 'bandpass';
-    f.frequency.value = frekans;
-    f.Q.value = 1.5;
-    const g = c.createGain();
-    g.gain.value = seviye;
-    k.connect(f);
-    f.connect(g);
-    g.connect(ana);
-    k.start(t);
+  // Tek taş vuruşu. guc: 0-1 (atış sert, dizme hafif), masa: ahşap gövde sesi ne kadar
+  function vurus(gecikme = 0, guc = 0.6, masa = 0.6) {
+    motor();
+    const t = ctx.currentTime + gecikme;
+    const k = oyna(0.94, 1.06);
+    // Taşın kendi çınlaması (sert plastik: tiz, uyumsuz tınılar, çok çabuk söner)
+    [[2350, 0.035, 0.09], [3720, 0.025, 0.06], [5480, 0.018, 0.04], [7900, 0.012, 0.025]]
+      .forEach(([f, sure, sev]) => tini(t, f * k, sure * oyna(0.8, 1.2), sev * guc));
+    // Çarpmanın ilk "tık"ı
+    hisirti(t, { sure: 0.012, tip: 'highpass', frekans: 3500, seviye: 0.5 * guc });
+    // Masanın tok sesi
+    hisirti(t, { sure: 0.07, tip: 'bandpass', frekans: 300 * k, q: 2.5, seviye: 0.9 * guc * masa, atak: 0.002 });
+    tini(t, 140 * k, 0.06, 0.15 * guc * masa);
+  }
+
+  // Taşın çuhada / ıstakada kayması
+  function kayma(gecikme = 0, sure = 0.12, seviye = 0.06) {
+    motor();
+    const t = ctx.currentTime + gecikme;
+    hisirti(t, { sure, tip: 'bandpass', frekans: oyna(1800, 2600), q: 0.7, seviye, atak: sure * 0.4 });
   }
 
   const sesler = {
-    secim: () => tak({ seviye: 0.15, frekans: 3000 }),
-    cek: () => tak({ seviye: 0.35, frekans: 1800 }),
+    secim: () => vurus(0, 0.25, 0.2),
+    cek: () => {
+      kayma(0, 0.14, 0.05);
+      vurus(0.13, 0.45, 0.35);
+    },
     at: () => {
-      tak({ seviye: 0.5, frekans: 1500 });
-      tak({ gecikme: 0.06, seviye: 0.15, frekans: 2500 });
+      vurus(0, 0.85, 0.9);
+      vurus(0.045, 0.2, 0.3);  // küçük sekme
     },
-    diz: () => [0, 0.04, 0.08, 0.12, 0.16].forEach(g => tak({ gecikme: g, seviye: 0.2, frekans: 2000 + Math.random() * 800 })),
+    diz: () => {
+      for (let i = 0; i < 9; i++) vurus(i * oyna(0.035, 0.05), oyna(0.2, 0.35), 0.3);
+    },
     karistir: () => {
-      for (let k = 0; k < 18; k++) tak({ gecikme: k * 0.05 + Math.random() * 0.03, seviye: 0.18, frekans: 1500 + Math.random() * 1500 });
+      for (let i = 0; i < 14; i++) kayma(i * 0.07, 0.18, 0.05);
+      for (let i = 0; i < 34; i++) vurus(oyna(0, 1.1), oyna(0.15, 0.45), oyna(0.2, 0.6));
     },
-    tik: () => ton(1400, { sure: 0.04, seviye: 0.06, tip: 'square' }),
+    // Süre azalırken saat gibi tıklama, son saniyelerde çift tık
+    tik: () => vurus(0, 0.18, 0.5),
     uyari: () => {
-      ton(880, { sure: 0.15, seviye: 0.12, tip: 'square' });
-      ton(660, { gecikme: 0.18, sure: 0.2, seviye: 0.12, tip: 'square' });
+      vurus(0, 0.5, 0.9);
+      vurus(0.12, 0.5, 0.9);
     },
+    // Sıra sende: parmakla masaya iki kez vurma
     siraSende: () => {
-      ton(523.3, { sure: 0.12, seviye: 0.08, tip: 'triangle' });
-      ton(784, { gecikme: 0.1, sure: 0.18, seviye: 0.08, tip: 'triangle' });
+      motor();
+      const t = ctx.currentTime;
+      [0, 0.16].forEach(g => {
+        hisirti(t + g, { sure: 0.09, tip: 'lowpass', frekans: 420, seviye: 0.9 });
+        tini(t + g, 110, 0.08, 0.2);
+      });
     },
-    ac: () => [523.3, 659.3, 784, 1046.5].forEach((f, k) => ton(f, { gecikme: k * 0.08, sure: 0.3, seviye: 0.1, tip: 'triangle' })),
-    ceza: () => ton(180, { sure: 0.35, seviye: 0.15, tip: 'sawtooth', bitis: 110 }),
-    hata: () => ton(220, { sure: 0.15, seviye: 0.1, tip: 'square', bitis: 170 }),
-    bitis: () => [784, 988, 1175, 1568].forEach((f, k) => ton(f, { gecikme: k * 0.1, sure: 0.4, seviye: 0.1, tip: 'triangle' })),
-    kazanma: () => [523.3, 659.3, 784, 1046.5, 1318.5].forEach((f, k) => ton(f, { gecikme: k * 0.14, sure: 0.6, seviye: 0.12, tip: 'triangle' })),
+    // Açınca: taşlar masaya tek tek dizilir
+    ac: () => {
+      for (let i = 0; i < 10; i++) vurus(i * 0.06, oyna(0.45, 0.6), 0.6);
+    },
+    ceza: () => {
+      motor();
+      const t = ctx.currentTime;
+      hisirti(t, { sure: 0.3, tip: 'lowpass', frekans: 220, seviye: 1.2 });
+      tini(t, 90, 0.3, 0.25);
+    },
+    hata: () => {
+      vurus(0, 0.3, 0.6);
+      vurus(0.08, 0.3, 0.6);
+    },
+    // El bitince taşlar masaya bırakılır
+    bitis: () => {
+      vurus(0, 1, 1);
+      for (let i = 0; i < 20; i++) vurus(0.15 + oyna(0, 0.5), oyna(0.2, 0.5), 0.5);
+    },
+    kazanma: () => {
+      for (let i = 0; i < 40; i++) vurus(oyna(0, 1.6), oyna(0.2, 0.6), 0.6);
+    },
   };
 
   function acKapa() {
