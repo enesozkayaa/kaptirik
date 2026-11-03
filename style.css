@@ -50,22 +50,33 @@ details li { margin: 4px 0; }
 #ust button { padding: 5px 9px; background: #0007; color: #fff; box-shadow: none; }
 #esik b { color: #f6d58a; }
 
-/* ---------- Süre ve oyuncu kutuları (rakipler en üstte, masayı kapatmasın) ---------- */
+/* ---------- Süre ve oyuncu kartları ---------- */
 #sureCubuguKap { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 11; background: #0006; }
 #sureCubugu { height: 100%; width: 100%; background: #6ee08f; transition: width 1s linear; }
 #sureCubugu.az { background: #ff5252; }
-#rakipler { flex: 1; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
+/* Oyuncu kartı: renkli yuvarlak avatar (baş harf) + isim + puan */
 .koltuk {
-  position: relative; z-index: 9; display: flex; flex-direction: row; align-items: center; gap: 5px;
-  background: #000a; border: 2px solid var(--renk, #888); border-radius: 12px; padding: 4px 9px; font-size: 13px; min-width: 76px;
-  transition: box-shadow .2s;
+  display: flex; align-items: center; gap: 7px; padding: 3px 11px 3px 3px; border-radius: 999px; font-size: 13px;
+  background: linear-gradient(#2b221aee, #140f0bee); border: 1px solid #ffffff1f; box-shadow: 0 3px 10px #0009;
+  transition: box-shadow .25s;
 }
-.koltuk b { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.koltuk .puan { font-weight: 700; }
-.koltuk .eksi { color: #7dff9b; }
-.koltuk .acti { font-size: 10px; background: #f6d58a; color: #1b1206; border-radius: 6px; padding: 0 5px; font-weight: 800; }
-.koltuk .tasSayisi { font-size: 11px; opacity: .75; }
-.koltuk.sirada { box-shadow: 0 0 0 3px #fff, 0 0 18px var(--renk); }
+.koltuk .avatar {
+  position: relative; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: radial-gradient(circle at 35% 30%, #fff6, transparent 55%), var(--renk); color: #fff; font-weight: 800; font-size: 15px;
+  text-shadow: 0 1px 2px #0009; box-shadow: inset 0 -3px 0 #0003, 0 0 0 2px #ffffff40;
+}
+.koltuk .bilgi { display: flex; flex-direction: column; line-height: 1.15; }
+.koltuk .bilgi b { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+.koltuk .puan { font-size: 12px; font-weight: 700; color: #f6d58a; }
+.koltuk .puan.eksi { color: #7dff9b; }
+.koltuk .acti {
+  position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); font-size: 7.5px; font-weight: 900;
+  background: #f6d58a; color: #1b1206; border-radius: 4px; padding: 0 3px; text-shadow: none; letter-spacing: .3px;
+}
+.koltuk.sirada { box-shadow: 0 0 0 2px var(--renk), 0 0 18px var(--renk); }
+.koltuk.sirada .avatar { animation: nabiz 1.2s infinite; }
+/* Rakip kartları masada, ıstakalarının yanında (konumu oyun.js hesaplar) */
+.koltuk.rakip { position: fixed; z-index: 9; transform: translate(-50%, -50%); pointer-events: none; }
 #benSatiri { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin-bottom: 4px; pointer-events: none; }
 #koltuk0 { width: max-content; }
 #sayac {
@@ -75,7 +86,6 @@ details li { margin: 4px 0; }
 #sayac b { width: 32px; height: 32px; border-radius: 50%; background: #111c; display: grid; place-items: center; font-size: 15px; }
 #sayac.az { --renk: #ff5252; animation: nabiz 1s infinite; }
 @keyframes nabiz { 50% { transform: scale(1.08); } }
-.koltuk .yon { font-size: 11px; }
 
 /* ---------- Mesaj ---------- */
 #mesaj {
@@ -91,7 +101,7 @@ details li { margin: 4px 0; }
 /* ---------- Alt kısım: süre, düğmeler, ıstaka ---------- */
 #alt { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 0 6px max(6px, env(safe-area-inset-bottom)); pointer-events: none; }
 #alt > *, #ust > * { pointer-events: auto; }
-#alt > #mesaj, #ust > #rakipler, #alt > #eylemler, #alt > #benSatiri { pointer-events: none; }
+#alt > #mesaj, #alt > #eylemler, #alt > #benSatiri { pointer-events: none; }
 #eylemler button { pointer-events: auto; }
 #eylemler { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-bottom: 5px; }
 #eylemler button { padding: 7px 10px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
@@ -164,12 +174,9 @@ details li { margin: 4px 0; }
 @media (max-width: 480px) { .listeler { flex-direction: column; } }
 
 @media (max-width: 560px) {
+  .koltuk.rakip { font-size: 11px; padding-right: 8px; gap: 5px; }
+  .koltuk.rakip .avatar { width: 26px; height: 26px; font-size: 13px; }
+  .koltuk.rakip .bilgi b { max-width: 82px; font-size: 11px; }
   #ust { font-size: 12px; gap: 5px; }
-  .koltuk { font-size: 11px; min-width: 0; padding: 3px 6px; gap: 3px; }
-  .koltuk b { max-width: 54px; }
-  #rakipler .yon { display: none; }
-  #rakipler .koltuk { padding: 2px 5px; border-width: 1.5px; }
-  .koltuk .acti { font-size: 8px; padding: 0 3px; }
-  #rakipler { gap: 4px; order: 9; flex-basis: 100%; }
   #eylemler button { padding: 6px 8px; font-size: 12.5px; }
 }

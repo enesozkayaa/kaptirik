@@ -284,18 +284,21 @@ function ciz() {
   $('elBilgi').textContent = `El ${o.elNo}/${o.ayar.elSayisi}`;
   $('esik').innerHTML = `Açmak için: <b>${Motor.gereken()}+</b>${Motor.kimseAcmadi() ? '' : ' · çift: ' + (Motor.gereken() + (Motor.gereken() % 2)) + '+'}`;
 
-  // Oyuncu kutuları (rakipler üstte: sol, karşı, sağ; ben altta)
+  // Oyuncu kartları (rakipler ıstakalarının yanında, ben altta)
   [0, 1, 2, 3].forEach(k => {
     const no = oyuncuNo(k);
     const p = o.oyuncular[no];
     const kutu = $(`koltuk${k}`);
     const puan = anlikPuan(p);
     const sirada = o.sira === no && o.asama === 'oyun';
-    kutu.className = `koltuk k${k}${sirada ? ' sirada' : ''}`;
+    kutu.className = `koltuk${k ? ' rakip' : ''}${sirada ? ' sirada' : ''}`;
     kutu.style.setProperty('--renk', KOLTUK_RENKLERI[no]);
-    kutu.innerHTML = `<span class="yon">${['', '➡️', '⬆️', '⬅️'][k]}</span><b>${guvenli(p.ad)}</b><span class="puan ${puan < 0 ? 'eksi' : ''}">${puan}</span>`
-      + (p.acti ? `<span class="acti">${p.acisTuru === 'cift' ? 'ÇİFT' : 'AÇTI'}</span>` : '');
+    // Avatarda ismin son kelimesinin baş harfi ("Bot Zeynep" → Z)
+    const harf = [...(p.ad.trim().split(/\s+/).at(-1) || '?')][0].toLocaleUpperCase('tr');
+    kutu.innerHTML = `<span class="avatar">${guvenli(harf)}${p.acti ? `<span class="acti">${p.acisTuru === 'cift' ? 'ÇİFT' : 'AÇTI'}</span>` : ''}</span>`
+      + `<span class="bilgi"><b>${guvenli(p.ad)}</b><span class="puan ${puan < 0 ? 'eksi' : ''}">${puan}</span></span>`;
   });
+  kartlariYerlestir();
 
   if (o.tur) sayaciGoster(o.tur.kalan, o.tur.toplam);
   dugmeleriCiz();
@@ -329,6 +332,20 @@ function sayaciGoster(kalan, toplam) {
   s.style.boxShadow = `0 0 0 2px ${KOLTUK_RENKLERI[o.sira]}, 0 2px 8px #0008`;
   s.title = `${o.oyuncular[o.sira].ad} için kalan süre`;
 }
+
+// Rakip kartları ıstakalarının dış yanında durur (ekran dışına taşmasın, üst çubuğun altına girmesin)
+const KART_YERI = { 1: { x: 4.45, y: 0.5, z: 0 }, 2: { x: 0, y: 0.5, z: -4.5 }, 3: { x: -4.45, y: 0.5, z: 0 } };
+function kartlariYerlestir() {
+  const ustAlt = $('ust').getBoundingClientRect().bottom;
+  [1, 2, 3].forEach(k => {
+    const kart = $(`koltuk${k}`);
+    const p = Sahne.ekranda(KART_YERI[k]);
+    const w = kart.offsetWidth / 2 + 4, h = kart.offsetHeight / 2 + 4;
+    kart.style.left = `${Math.min(Math.max(p.x, w), innerWidth - w)}px`;
+    kart.style.top = `${Math.min(Math.max(p.y, ustAlt + h), innerHeight - h)}px`;
+  });
+}
+window.addEventListener('resize', () => Motor.oyun && kartlariYerlestir());
 
 const tasEl = id => document.querySelector(`#istaka .tas[data-id="${id}"]`);
 

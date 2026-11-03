@@ -434,7 +434,8 @@ const Sahne = (() => {
   // Masadaki bir yerin ekrandaki konumu (taş uçurma animasyonu için)
   function ekranda(yer) {
     kameraGuncelle();
-    const v = yer === 'deste' ? DESTE.clone().setY(0.3) : V(KOSE[yer][0], 0.1, KOSE[yer][1]);
+    const v = yer === 'deste' ? DESTE.clone().setY(0.3)
+      : typeof yer === 'object' ? V(yer.x, yer.y, yer.z) : V(KOSE[yer][0], 0.1, KOSE[yer][1]);
     v.project(kamera);
     const kutu = renderer.domElement.getBoundingClientRect();
     return { x: kutu.left + (v.x + 1) / 2 * kutu.width, y: kutu.top + (1 - v.y) / 2 * kutu.height };
