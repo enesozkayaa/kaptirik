@@ -101,6 +101,8 @@ details li { margin: 4px 0; }
 }
 .yuva.hedef { background: #ffffff40; box-shadow: inset 0 0 0 2px #fff8; }
 .tas.tutuluyor { opacity: .25; }
+.tas.gizli { visibility: hidden; }
+#adim.eksik { border-color: #ff5252; box-shadow: 0 0 0 3px #ff525255; }
 /* Uçan / parmakla tutulan taş */
 .ucan { position: fixed; z-index: 40; pointer-events: none; transition: transform .45s cubic-bezier(.2,.8,.3,1); }
 .ucan.tutulan { transition: none; transform: scale(1.15); filter: drop-shadow(0 8px 10px #000a); }

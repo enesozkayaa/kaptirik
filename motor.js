@@ -75,7 +75,7 @@ const Motor = (() => {
   function siraBasla(no, ilk = false) {
     o.sira = no;
     const p = o.oyuncular[no];
-    o.tur = { cekti: ilk, yandan: null, acikBasta: p.acti, kalan: TUR_SURESI };
+    o.tur = { cekti: ilk, yandan: null, acikBasta: p.acti, kalan: TUR_SURESI, sureSifirlandi: false, geriAl: [] };
     zamanlayiciBaslat();
     degisti();
     olay('sira', { no });
@@ -171,13 +171,28 @@ const Motor = (() => {
   const kimseAcmadi = () => o.oyuncular.every(p => !p.acti);
 
   // Elini aç ya da (açtıysan) yeni grupları yere koy. tur: 'seri' | 'cift'
-  function ac(no, tur) {
+  // idGruplari: oyuncunun ıstakasında dizdiği gruplar (taş id listeleri). Verilmezse en iyi diziliş bulunur (botlar).
+  // Son taş atılarak bitirilir: elde en az bir taş kalmalı.
+  function ac(no, tur, idGruplari) {
     if (!siraKimde(no)) return hata('Sıra sende değil.');
     if (!o.tur.cekti) return hata('Önce taş çek.');
     const p = o.oyuncular[no];
-    const sonuc = tur === 'cift' ? K.enIyiCiftler(p.el, o.okey) : K.enIyiGruplar(p.el, o.okey);
-    const gruplar = tur === 'cift' ? sonuc.ciftler : sonuc.gruplar;
-    if (!gruplar.length) return hata(tur === 'cift' ? 'Elinde çift yok.' : 'Elinde per ya da seri yok.');
+    let gruplar;
+    if (idGruplari) {
+      const coz = tur === 'cift' ? K.ciftCoz : K.grupCoz;
+      gruplar = idGruplari.map(ids => ids.map(id => p.el.find(t => t.id === id)))
+        .filter(ts => ts.every(Boolean)).map(ts => coz(ts, o.okey)).filter(Boolean);
+    } else {
+      const en = tur === 'cift' ? K.enIyiCiftler(p.el, o.okey) : K.enIyiGruplar(p.el, o.okey);
+      gruplar = [...(tur === 'cift' ? en.ciftler : en.gruplar)];
+      // Bütün taşlar gruba girdiyse en küçük grubu elde tut (atacak taş kalsın)
+      if (gruplar.reduce((a, g) => a + g.sirali.length, 0) >= p.el.length) {
+        gruplar.sort((a, b) => b.deger - a.deger).pop();
+      }
+    }
+    const sonuc = { deger: gruplar.reduce((a, g) => a + g.deger, 0) };
+    if (!gruplar.length) return hata(tur === 'cift' ? 'Istakanda dizili çift yok. Çiftleri yan yana koy, aralarına boşluk bırak.' : 'Istakanda dizili per ya da seri yok. Grupları yan yana diz, aralarına boşluk bırak.');
+    if (gruplar.reduce((a, g) => a + g.sirali.length, 0) >= p.el.length) return hata('Elinde atacak bir taş kalmalı. Son taşı ortaya atarak bitirirsin.');
     if (p.acti) {
       if (p.acisTuru !== tur) return hata(p.acisTuru === 'cift' ? 'Çift açtın: yere sadece çift koyabilirsin.' : 'Seri açtın: yere çift koyamazsın.');
     } else {
@@ -193,6 +208,7 @@ const Motor = (() => {
       }
     }
     // Grupları masaya koy
+    kaydet();
     const ilkAcis = !p.acti;
     const yandanKullanildi = o.tur.yandan && gruplar.some(g => g.sirali.includes(o.tur.yandan));
     gruplar.forEach(g => masayaKoy(no, g));
@@ -209,11 +225,13 @@ const Motor = (() => {
     } else {
       olay('koydu', { no, tur, deger: sonuc.deger });
     }
-    // Açınca (ya da yere koyunca) düşünmek için süre baştan başlar
-    o.tur.kalan = TUR_SURESI;
-    olay('sure', { kalan: o.tur.kalan, no });
+    // İlk açışta düşünmek için süre baştan başlar (geri alıp tekrar açınca bir daha başlamaz)
+    if (!o.tur.sureSifirlandi) {
+      o.tur.sureSifirlandi = true;
+      o.tur.kalan = TUR_SURESI;
+      olay('sure', { kalan: o.tur.kalan, no });
+    }
     degisti();
-    elBittiMi(no, false);
     return tamam({ deger: sonuc.deger });
   }
 
@@ -235,6 +253,8 @@ const Motor = (() => {
     if (!t || !g) return hata('Taş ya da grup bulunamadı.');
     const s = K.isleme(g, t, o.okey);
     if (!s) return hata('Bu taş bu gruba uymuyor.');
+    if (!s.takas && p.el.length === 1) return hata('Son taşını işleyemezsin: ortaya atarak bitir.');
+    kaydet();
     p.el.splice(p.el.indexOf(t), 1);
     const sahip = o.oyuncular[g.sahip];
     if (s.takas) {
@@ -243,7 +263,8 @@ const Motor = (() => {
       g.sirali[s.yer] = t;
       okeyTasi.ters = false;
       p.el.push(okeyTasi);
-      ceza(g.sahip, 500 + K.deger(t, o.okey) * 10, `${p.ad}, ${sahip.ad} grubundaki okeyin yerine taşını koydu`);
+      // Kendi grubundaki okeyi alana ceza yok
+      if (g.sahip !== no) ceza(g.sahip, 500 + K.deger(t, o.okey) * 10, `${p.ad}, ${sahip.ad} grubundaki okeyin yerine taşını koydu`);
       olay('takas', { no, grupId });
     } else {
       Object.assign(g, { sirali: s.yeni.sirali, temsil: s.yeni.temsil, deger: s.yeni.deger });
@@ -251,7 +272,6 @@ const Motor = (() => {
       olay('isledi', { no, grupId });
     }
     degisti();
-    elBittiMi(no, false);
     return tamam({ takas: s.takas });
   }
 
@@ -280,13 +300,40 @@ const Motor = (() => {
     return tamam();
   }
 
-  // Taş atmadan eli bitti mi? (son taşlar da yere kondu)
-  function elBittiMi(no) {
-    if (o.asama === 'oyun' && !o.oyuncular[no].el.length) {
-      clearInterval(sayac);
-      bitir(no, false);
-    }
+  // ---------- Geri alma ----------
+  // Açma, yere koyma ve işleme taş atılana kadar geri alınabilir. Süre geri alınmaz.
+  function kaydet() {
+    const tumTaslar = [...o.oyuncular.flatMap(p => p.el), ...o.masa.flatMap(g => g.sirali)];
+    o.tur.geriAl.push({
+      eller: o.oyuncular.map(p => [...p.el]),
+      puan: o.oyuncular.map(p => ({ elPuani: p.elPuani, gecmis: p.gecmis.length, acti: p.acti, acisTuru: p.acisTuru })),
+      masa: o.masa.map(g => ({ ...g, sirali: [...g.sirali], temsil: [...g.temsil] })),
+      esik: o.esik,
+      grupSayaci: o.grupSayaci,
+      ters: tumTaslar.map(t => [t, t.ters]),
+    });
   }
+
+  function geriAl(no) {
+    if (!siraKimde(no)) return hata('Sıra sende değil.');
+    const k = o.tur.geriAl.pop();
+    if (!k) return hata('Geri alınacak bir şey yok.');
+    o.oyuncular.forEach((p, i) => {
+      p.el = k.eller[i];
+      p.elPuani = k.puan[i].elPuani;
+      p.gecmis.length = k.puan[i].gecmis;
+      p.acti = k.puan[i].acti;
+      p.acisTuru = k.puan[i].acisTuru;
+    });
+    o.masa = k.masa;
+    o.esik = k.esik;
+    o.grupSayaci = k.grupSayaci;
+    k.ters.forEach(([t, ters]) => (t.ters = ters));
+    olay('geriAldi', { no });
+    degisti();
+    return tamam();
+  }
+  const geriAlinabilir = () => !!o?.tur?.geriAl.length;
 
   // ---------- Puanlama ----------
   function ceza(no, puan, neden) {
@@ -426,7 +473,7 @@ const Motor = (() => {
     TUR_SURESI,
     dinleyici(ad, fn) { dinle[ad] = fn; },
     get oyun() { return o; },
-    yeniOyun, sonrakiEl, ortadanCek, yandanAl, geriBirak, ac, isle, at, gereken, kimseAcmadi, yandakiTas, enKotuTas,
+    yeniOyun, sonrakiEl, ortadanCek, yandanAl, geriBirak, ac, isle, at, geriAl, geriAlinabilir, gereken, kimseAcmadi, yandakiTas, enKotuTas,
   };
 })();
 

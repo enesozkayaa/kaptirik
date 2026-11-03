@@ -2,9 +2,11 @@
 // Kaptirik - ekran: menü, ıstakam, sürükle-bırak, süre, mesajlar ve puan tablosu
 // Oyunun kuralları motor.js'te; burası sadece gösterir ve dokunuşları motora iletir.
 //
-// Oynanış: ortadaki desteye dokun → taş ıstakana uçar. Sağdaki oyuncunun attığı taşa dokun → yandan alırsın.
-// Atmak için taşı sol alttaki köşeye sürükle. İşlemek için taşı masadaki gruba sürükle.
-// Istakada taşları parmağınla tutup istediğin yere taşırsın.
+// Oynanış: ortadaki desteye dokun → taş ıstakana uçar. Soldaki oyuncunun attığı taşa dokun → yandan alırsın.
+// Atmak için taşı sağ alttaki köşeye sürükle. İşlemek için taşı masadaki gruba sürükle.
+// Son taşı ortaya (masanın herhangi bir yerine) bırakırsan bitirirsin.
+// Istakada taşları parmağınla tutup istediğin yere taşırsın; dizili bir grubun en sağdaki taşını tutarsan bütün grup gelir.
+// Açarken ıstakanda yan yana dizdiğin gruplar açılır (aralarında boşluk olmalı).
 // =============================================================
 
 const $ = id => document.getElementById(id);
@@ -23,11 +25,21 @@ const ui = {
   ayar: { elSayisi: 5, yardimli: true, mod: 'essiz' },
   mesajZaman: null,
   ucacak: null,       // ıstakaya uçarak gelecek taş: { id, nereden }
+  ucan: null,         // şu an uçmakta olan taş: { id, bitis }
+  yuvaYigini: [],     // açma/işleme öncesi ıstaka dizilişleri (geri alınca taşlar eski yerine döner)
 };
 
-// Ekrandaki koltuklar: 0 alt (ben), 1 sağ, 2 üst, 3 sol. Sıra benden sonra soldakine geçer:
-// soldaki benim attığımı alır, ben sağdakinin attığını alırım.
-const SIRA_KOLTUK = [0, 3, 2, 1];  // benden kaç sonra oynuyor → hangi koltukta
+// Geri alınabilir bir hamle yap: başarılıysa ıstakanın önceki hâli saklanır
+function hamle(fn) {
+  const once = [...ui.yuvalar];
+  const r = fn();
+  if (r.ok) ui.yuvaYigini.push(once);
+  return r;
+}
+
+// Ekrandaki koltuklar: 0 alt (ben), 1 sağ, 2 üst, 3 sol. Sıra saatin tersine döner, benden sonra sağdaki oynar:
+// sağdaki benim attığımı alır, ben soldakinin attığını alırım.
+const SIRA_KOLTUK = [0, 1, 2, 3];  // benden kaç sonra oynuyor → hangi koltukta
 const koltukNo = no => SIRA_KOLTUK[(no - ui.benimNo + 4) % 4];
 const oyuncuNo = koltuk => (ui.benimNo + SIRA_KOLTUK[koltuk]) % 4;
 
@@ -52,7 +64,14 @@ function menuKur() {
   });
   $('yardimli').onchange = () => (ui.ayar.yardimli = $('yardimli').checked);
   $('botlaBtn').onclick = () => {
-    const ad = $('adim').value.trim().slice(0, 12) || 'Sen';
+    const ad = $('adim').value.trim().slice(0, 12);
+    if (!ad) {
+      $('adim').classList.add('eksik');
+      $('adim').placeholder = 'Önce adını yaz 👈';
+      $('adim').focus();
+      Ses.hata();
+      return;
+    }
     try {
       localStorage.setItem(AD_ANAHTARI, ad);
     } catch (e) { /* hatırlanmasa da olur */ }
@@ -72,11 +91,15 @@ function istakayiEsitle(el) {
   const yerde = new Set(ui.yuvalar.filter(id => id !== null));
   el.forEach(t => {
     if (yerde.has(t.id)) return;
-    // Yeni gelen taş, ıstakadaki son taşın hemen sağındaki boşluğa konur
-    const son = ui.yuvalar.findLastIndex(id => id !== null);
-    let bos = ui.yuvalar.indexOf(null, son + 1);
+    // Yeni gelen taş üst sıradaki son taşın sağına konur; üst sıra doluysa alt sıraya, en son ilk boşluğa
+    const sonUst = ui.yuvalar.slice(0, 15).findLastIndex(id => id !== null);
+    let bos = sonUst < 14 ? sonUst + 1 : -1;
+    if (bos < 0) {
+      const sonAlt = ui.yuvalar.findLastIndex(id => id !== null);
+      bos = sonAlt >= 15 && sonAlt < 29 ? sonAlt + 1 : ui.yuvalar.indexOf(null, 15);
+    }
     if (bos < 0) bos = ui.yuvalar.indexOf(null);
-    ui.yuvalar[bos >= 0 ? bos : ui.yuvalar.length] = t.id;
+    ui.yuvalar[bos] = t.id;
   });
 }
 
@@ -105,6 +128,77 @@ function yuvayaTasi(id, hedef) {
     }
   }
   y[hedef] = id;
+}
+
+// Bir grubu (en sağdaki taşından tutulmuş) yuvaya taşı: grubun en sağdaki taşı hedef yuvaya gelir.
+// Yer yoksa o sıradaki boşluklar kaydırılarak yer açılır; hiç yer yoksa grup yerinde kalır.
+function grubuTasi(ids, hedef) {
+  const eski = [...ui.yuvalar];
+  const n = ids.length;
+  ui.yuvalar = ui.yuvalar.map(id => (ids.includes(id) ? null : id));
+  const satirBas = Math.floor(hedef / 15) * 15;
+  const satir = ui.yuvalar.slice(satirBas, satirBas + 15);
+  if (satir.filter(id => id === null).length < n) {
+    ui.yuvalar = eski;
+    return false;
+  }
+  const bas = Math.min(Math.max(hedef - n + 1, satirBas), satirBas + 15 - n) - satirBas;
+  const yeni = [...satir.slice(0, bas), ...ids, ...satir.slice(bas)];
+  // Fazladan gelen n yuvayı boşluklardan sil: önce grubun sağındakiler, sonra solundakiler
+  let silinecek = n;
+  for (let k = bas + n; k < yeni.length && silinecek; k++) if (yeni[k] === null) { yeni.splice(k, 1); k--; silinecek--; }
+  for (let k = bas - 1; k >= 0 && silinecek; k--) if (yeni[k] === null) { yeni.splice(k, 1); silinecek--; }
+  ui.yuvalar.splice(satirBas, 15, ...yeni);
+  return true;
+}
+
+// Istakada yan yana dizilmiş taş kümeleri (aralarında boşluk olanlar ayrı küme)
+function istakaKumeleri() {
+  const kumeler = [];
+  for (let satir = 0; satir < 2; satir++) {
+    let kume = [];
+    for (let k = satir * 15; k < satir * 15 + 15; k++) {
+      const id = ui.yuvalar[k];
+      if (id !== null && id !== undefined) kume.push(id);
+      else if (kume.length) {
+        kumeler.push(kume);
+        kume = [];
+      }
+    }
+    if (kume.length) kumeler.push(kume);
+  }
+  return kumeler;
+}
+
+// Istakada dizdiğin geçerli gruplar: seri için per/seri, çift için yan yana ikililer
+function diziliGruplar(tur) {
+  const o = Motor.oyun;
+  const gruplar = [];
+  istakaKumeleri().forEach(kume => {
+    const ts = kume.map(tasBul);
+    if (ts.some(t => !t)) return;
+    if (tur === 'cift') {
+      if (ts.length % 2) return;
+      const ciftler = [];
+      for (let k = 0; k < ts.length; k += 2) ciftler.push(K.ciftCoz([ts[k], ts[k + 1]], o.okey));
+      if (ciftler.every(Boolean)) gruplar.push(...ciftler);
+    } else {
+      const g = K.grupCoz(ts, o.okey);
+      if (g) gruplar.push(g);
+    }
+  });
+  return { gruplar, deger: gruplar.reduce((a, g) => a + g.deger, 0) };
+}
+
+// Tutulan taş, dizili bir grubun en sağındaysa bütün grubu ver (çiftte en sağdaki iki taş)
+function tutulanGrup(id) {
+  const o = Motor.oyun;
+  const kume = istakaKumeleri().find(k => k.includes(id));
+  if (!kume || kume.length < 2 || kume.at(-1) !== id) return [id];
+  const ts = kume.map(tasBul);
+  if (K.grupCoz(ts, o.okey)) return kume;
+  if (kume.length % 2 === 0 && K.ciftCoz(ts.slice(-2), o.okey)) return kume.slice(-2);
+  return [id];
 }
 
 // Grupları ıstakaya aralıklı diz (her grup arasında bir boşluk), kalanları sona
@@ -186,21 +280,24 @@ function ciz() {
       + `<span class="sn">${sirada ? o.tur.kalan : ''}</span>`;
   });
 
+  dugmeleriCiz();
+  // Sürüklerken ıstakayı yeniden çizme (tutulan taş yerinden kopmasın); bırakınca çizilir
+  if (ui.surukle) return;
+
   // Istakam
   const islekler = ui.ayar.yardimli ? new Set(ben.el.filter(t => K.islekMi(t, o.masa, o.okey)).map(t => t.id)) : new Set();
   $('istaka').innerHTML = ui.yuvalar.slice(0, ISTAKA_YUVA).map((id, i) => {
     const t = id !== null && tasBul(id);
     return `<div class="yuva" data-yuva="${i}">${t ? tasHtml(t, { islek: islekler.has(t.id) }) : ''}</div>`;
   }).join('');
-  if (ui.surukle?.basladi) tasEl(ui.surukle.id)?.classList.add('tutuluyor');
   if (o.tur?.yandan && ben.el.includes(o.tur.yandan)) tasEl(o.tur.yandan.id)?.classList.add('yandan');
   if (ui.ucacak) {
     const { id, nereden } = ui.ucacak;
     ui.ucacak = null;
     ucur(id, nereden);
+  } else if (ui.ucan && performance.now() < ui.ucan.bitis) {
+    tasEl(ui.ucan.id)?.classList.add('gizli');  // uçuş sürerken yeniden çizildiyse yine gizle
   }
-
-  dugmeleriCiz();
 }
 
 const tasEl = id => document.querySelector(`#istaka .tas[data-id="${id}"]`);
@@ -214,13 +311,16 @@ function dugmeleriCiz() {
   d.push(`<button data-e="seriDiz" class="ikinci">Seri diz <b>${g.deger}</b></button>`);
   d.push(`<button data-e="ciftDiz" class="ikinci">Çift diz <b>${c.ciftler.length}·${c.deger}</b></button>`);
   if (siraBende() && o.tur.cekti) {
+    // Açma, ıstakada dizdiğin gruplara göre (düğmedeki sayı dizili olanların toplamı)
+    const ds = diziliGruplar('seri'), dc = diziliGruplar('cift');
     if (!ben.acti) {
-      d.push(`<button data-e="acSeri" ${g.deger >= Motor.gereken() ? '' : 'disabled'}>Seri aç (${g.deger})</button>`);
-      d.push(`<button data-e="acCift" ${c.ciftler.length >= K.CIFT_SAYISI ? '' : 'disabled'}>Çift aç (${c.ciftler.length})</button>`);
+      d.push(`<button data-e="acSeri" ${ds.gruplar.length ? '' : 'disabled'}>Seri aç (${ds.deger})</button>`);
+      d.push(`<button data-e="acCift" ${dc.gruplar.length >= K.CIFT_SAYISI ? '' : 'disabled'}>Çift aç (${dc.gruplar.length})</button>`);
     } else {
-      const koyulacak = ben.acisTuru === 'cift' ? c.ciftler.length : g.gruplar.length;
+      const koyulacak = ben.acisTuru === 'cift' ? dc.gruplar.length : ds.gruplar.length;
       if (koyulacak) d.push(`<button data-e="${ben.acisTuru === 'cift' ? 'acCift' : 'acSeri'}">Yere koy</button>`);
     }
+    if (Motor.geriAlinabilir()) d.push('<button data-e="geriAl" class="uyariBtn">↶ Geri al</button>');
     if (o.tur.yandan && ben.el.includes(o.tur.yandan)) d.push('<button data-e="geri" class="uyariBtn">↩️ Geri bırak</button>');
   }
   $('eylemler').innerHTML = d.join('');
@@ -238,12 +338,13 @@ function ucur(id, nereden) {
   k.style.setProperty('--g', getComputedStyle($('istaka')).getPropertyValue('--g'));
   k.style.transform = `translate(${nereden.x - kutu.left - kutu.width / 2}px, ${nereden.y - kutu.top - kutu.height / 2}px) scale(.8)`;
   document.body.appendChild(k);
-  hedef.style.visibility = 'hidden';
+  hedef.classList.add('gizli');
+  ui.ucan = { id, bitis: performance.now() + 480 };
   requestAnimationFrame(() => requestAnimationFrame(() => (k.style.transform = 'none')));
   setTimeout(() => {
     k.remove();
-    const el = tasEl(id);
-    if (el) el.style.visibility = '';
+    ui.ucan = null;
+    document.querySelectorAll('#istaka .tas.gizli').forEach(el => el.classList.remove('gizli'));
   }, 480);
 }
 
@@ -278,15 +379,27 @@ function eylem(e) {
     istakayaDiz(c.ciftler.map(x => x.sirali), c.kalan.sort((a, b) => a.renk - b.renk || a.sayi - b.sayi));
     mesaj(`${c.ciftler.length} çift · toplam <b>${c.deger}</b>`);
   } else if (e === 'geri') sonuc(Motor.geriBirak(ui.benimNo));
-  else if (e === 'acSeri') sonuc(Motor.ac(ui.benimNo, 'seri'));
-  else if (e === 'acCift') sonuc(Motor.ac(ui.benimNo, 'cift'));
+  else if (e === 'geriAl') {
+    const once = ui.yuvaYigini.pop();
+    if (once) ui.yuvalar = once;
+    sonuc(Motor.geriAl(ui.benimNo));
+  }
+  else if (e === 'acSeri' || e === 'acCift') {
+    const tur = e === 'acSeri' ? 'seri' : 'cift';
+    const r = hamle(() => Motor.ac(ui.benimNo, tur, diziliGruplar(tur).gruplar.map(g => g.sirali.map(t => t.id))));
+    const enIyi = K.enIyiGruplar(ben.el, o.okey).deger;
+    if (!r.ok && !ben.acti && tur === 'seri' && enIyi >= Motor.gereken()) {
+      Ses.hata();
+      mesaj(`${r.hata}<br><small>İpucu: “Seri diz”e basarsan ${enIyi} oluyor.</small>`, 'hata');
+    } else sonuc(r);
+  }
 }
 
 // ---------- Taş çekme ----------
 function ortadanCek() {
   const o = Motor.oyun;
   if (!siraBende()) return mesaj('Sıra sende değil.');
-  if (o.tur.cekti) return mesaj('Bu tur taşını aldın. Şimdi bir taşı sol alttaki köşeye sürükleyip at.');
+  if (o.tur.cekti) return mesaj('Bu tur taşını aldın. Şimdi bir taşı sağ alttaki köşeye sürükleyip at.');
   const nereden = Sahne.ekranda('deste');
   const r = Motor.ortadanCek(ui.benimNo);
   if (sonuc(r) && r.tas) ui.ucacak = { id: r.tas.id, nereden };
@@ -294,19 +407,22 @@ function ortadanCek() {
 }
 
 function yandanAl() {
-  const nereden = Sahne.ekranda(1);
+  const nereden = Sahne.ekranda(3);
   const r = Motor.yandanAl(ui.benimNo);
   if (sonuc(r)) {
     ui.ucacak = { id: r.tas.id, nereden };
     ciz();
-    mesaj('Yandan aldın: bu taşla elini aç ya da işle. Olmazsa “Geri bırak”.');
+    mesaj('Soldan aldın: bu taşla elini aç ya da işle. Olmazsa “Geri bırak”.');
   }
 }
 
 // ---------- Sürükle-bırak ----------
 // Basılı tut + kaydır: taş parmağını izler. Istakada bir yuvaya bırakırsan oraya yerleşir,
-// sol alttaki köşeye bırakırsan atılır, masadaki gruba bırakırsan işlenir.
+// sağ alttaki köşeye bırakırsan atılır, masadaki gruba bırakırsan işlenir.
+// Elinde tek taş kaldıysa masanın herhangi bir yerine bırakınca atılır ve bitirirsin.
+// Dizili bir grubun en sağdaki taşını tutarsan bütün grup taşınır (çiftte iki taş).
 // Okeye kıpırdatmadan uzun basarsan ters döner.
+// Not: sürükleme sürerken ıstaka yeniden çizilmez; telefonda tutulan taş sayfadan kalkarsa parmak hareketi kaybolur.
 function surukleKur() {
   let uzun = null;
   $('istaka').addEventListener('pointerdown', e => {
@@ -335,17 +451,24 @@ function surukleKur() {
       if (Math.hypot(e.clientX - s.x0, e.clientY - s.y0) < 6) return;
       clearTimeout(uzun);
       s.basladi = true;
+      s.grup = tutulanGrup(s.id);
       const el = tasEl(s.id);
       const kutu = el.getBoundingClientRect();
+      const adim = s.grup.length > 1 ? tasEl(s.grup[1]).getBoundingClientRect().left - tasEl(s.grup[0]).getBoundingClientRect().left : kutu.width;
       s.hayalet = document.createElement('div');
       s.hayalet.className = 'ucan tutulan';
-      s.hayalet.innerHTML = tasHtml(tasBul(s.id));
-      Object.assign(s.hayalet.style, { width: `${kutu.width}px`, height: `${kutu.height}px` });
+      s.hayalet.innerHTML = s.grup.map(id => tasHtml(tasBul(id))).join('');
+      Object.assign(s.hayalet.style, {
+        width: `${kutu.width + adim * (s.grup.length - 1)}px`, height: `${kutu.height}px`,
+        display: 'grid', gridTemplateColumns: `repeat(${s.grup.length}, ${kutu.width}px)`, columnGap: `${adim - kutu.width}px`,
+      });
       s.hayalet.style.setProperty('--g', getComputedStyle($('istaka')).getPropertyValue('--g'));
-      s.dx = s.x0 - kutu.left;
+      // Parmak, hayalet içinde tutulan taşın (en sağdakinin) üstünde dursun
+      s.dx = s.x0 - kutu.left + adim * (s.grup.length - 1);
       s.dy = s.y0 - kutu.top;
       document.body.appendChild(s.hayalet);
-      s.atabilir = siraBende() && Motor.oyun.tur.cekti;
+      s.grup.forEach(id => tasEl(id)?.classList.add('tutuluyor'));
+      s.atabilir = s.grup.length === 1 && siraBende() && Motor.oyun.tur.cekti;
       if (s.atabilir) Sahne.atmaYeri(true);
       Ses.secim();
       ciz();
@@ -366,41 +489,49 @@ function surukleKur() {
     if (!s.basladi) return;
     s.hayalet.remove();
     Sahne.atmaYeri(false);
-    if (e.type === 'pointerup') birak(s.id, e.clientX, e.clientY);
+    if (e.type === 'pointerup') birak(s, e.clientX, e.clientY);
     ciz();
   };
   document.addEventListener('pointerup', bitir);
   document.addEventListener('pointercancel', bitir);
 }
 
-// Bırakılan nokta atma köşesine (sol alt) yakın mı?
+// Bırakılan nokta atma köşesine (sağ alt) yakın mı?
 function atmaYerindeMi(x, y) {
   const n = Sahne.noktada(x, y);
   if (n.tik?.tur === 'atilan' && n.tik.koltuk === 0) return true;
   const [kx, kz] = Sahne.KOSE[0];
-  return Math.hypot(n.x - kx, n.z - kz) < 1.3;
+  return Math.hypot(n.x - kx, n.z - kz) < 1.4;
 }
 
-function birak(id, x, y) {
+function birak(s, x, y) {
   const o = Motor.oyun;
+  const id = s.id;
   const ust = document.elementFromPoint(x, y);
   const yuva = ust?.closest('#istaka .yuva');
   if (yuva) {
-    yuvayaTasi(id, +yuva.dataset.yuva);
+    if (s.grup.length > 1) {
+      if (!grubuTasi(s.grup, +yuva.dataset.yuva)) mesaj('O sırada grup için yer yok.');
+    } else yuvayaTasi(id, +yuva.dataset.yuva);
     Ses.secim();
     return;
   }
-  if (!ust || ust.closest('#alt, #ust, #rakipler')) return;  // ıstaka dışı ama masada değil: geri döner
+  if (s.grup.length > 1) return;  // grup sadece ıstakada taşınır
+  if (!ust || ust.closest('#alt, #ust')) return;  // ıstaka dışı ama masada değil: geri döner
   const n = Sahne.noktada(x, y);
-  if (n.tik?.tur === 'grup') {
+  const sonTas = benim().el.length === 1;
+  if (siraBende() && o.tur.cekti && sonTas) {
+    // Son taşı ortaya fırlat: el biter
+    sonuc(Motor.at(ui.benimNo, id));
+  } else if (n.tik?.tur === 'grup') {
     if (!siraBende()) return mesaj('Sıra sende değil.');
-    sonuc(Motor.isle(ui.benimNo, id, n.tik.id));
+    sonuc(hamle(() => Motor.isle(ui.benimNo, id, n.tik.id)));
   } else if (atmaYerindeMi(x, y)) {
     if (!siraBende()) return mesaj('Sıra sende değil.');
-    if (!o.tur.cekti) return mesaj('Önce ortadan ya da sağdan taş al.');
+    if (!o.tur.cekti) return mesaj('Önce ortadan ya da soldan taş al.');
     sonuc(Motor.at(ui.benimNo, id));
   } else if (siraBende() && o.tur.cekti) {
-    mesaj('Atmak için taşı sol alttaki yeşil halkaya bırak.');
+    mesaj('Atmak için taşı sağ alttaki yeşil halkaya bırak.');
   }
 }
 
@@ -410,7 +541,7 @@ function masaDokunus(h) {
   if (!o || o.asama !== 'oyun') return;
   if (h.tur === 'deste') ortadanCek();
   else if (h.tur === 'atilan') {
-    if (siraBende() && !o.tur.cekti && h.koltuk === 1) return yandanAl();
+    if (siraBende() && !o.tur.cekti && h.koltuk === 3) return yandanAl();
     if (o.ayar.yardimli) atilanlariGoster(oyuncuNo(h.koltuk));
     else mesaj('Atılan taşları görmek için yardımlı modu aç. Aklında tut! 🧠');
   } else if (h.tur === 'grup') {
@@ -430,11 +561,12 @@ function olay(tip, v) {
   const o = Motor.oyun;
   const ad = no => guvenli(o.oyuncular[no].ad);
   if (tip === 'sira') {
+    ui.yuvaYigini = [];
     if (v.no === ui.benimNo) {
       Ses.siraSende();
       mesaj(o.tur.cekti
-        ? 'İlk sen başlıyorsun: 15 taşın var. Bir taşı sol alttaki köşeye sürükleyip at.'
-        : 'Sıra sende! Ortadaki desteye dokun ya da sağdaki taşı al.');
+        ? 'İlk sen başlıyorsun: 15 taşın var. Bir taşı sağ alttaki köşeye sürükleyip at.'
+        : 'Sıra sende! Ortadaki desteye dokun ya da soldaki taşı al.');
     }
   } else if (tip === 'cekti') {
     Ses.cek();
@@ -444,6 +576,9 @@ function olay(tip, v) {
   } else if (tip === 'acti') {
     Ses.ac();
     mesaj(`${ad(v.no)} ${v.tur === 'cift' ? 'çift' : 'seri'} açtı: <b>${v.deger}</b>`, 'iyi');
+  } else if (tip === 'geriAldi') {
+    Ses.diz();
+    mesaj('Geri alındı ↶');
   } else if (tip === 'ceza') {
     if (v.puan > 0) Ses.ceza();
     mesaj(`${v.puan > 0 ? 'Ceza +' : 'Düşer '}${v.puan} · ${guvenli(v.neden)}`, v.puan > 0 ? 'ceza' : 'iyi');

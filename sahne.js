@@ -224,9 +224,9 @@ const Sahne = (() => {
     { x: -4.1, z: 0, don: Math.PI / 2 },   // sol
   ];
 
-  // Atılan taşların köşeleri (koltuğa göre). Sıra: ben (alt) → sol → üst → sağ.
-  // Ben sol alt köşeye atarım; sağdaki oyuncu sağ alt köşeye atar, ben oradan alırım.
-  const KOSE = [[-3.15, 3.15], [3.15, 3.15], [3.15, -3.15], [-3.15, -3.15]];
+  // Atılan taşların köşeleri (koltuğa göre). Sıra saatin tersine: ben (alt) → sağ → üst → sol.
+  // Ben sağ alt köşeye atarım (sağdaki oradan alır); soldaki sol alt köşeye atar, ben oradan alırım.
+  const KOSE = [[3.15, 3.15], [3.15, -3.15], [-3.15, -3.15], [-3.15, 3.15]];
   const DESTE = V(-0.42, 0, 0);
   const BUYUK = 1.6;  // deste ve gösterge taşları
 
@@ -313,7 +313,7 @@ const Sahne = (() => {
       dinamik.add(gost);
     }
 
-    // Köşelerde atılan taşlar: her oyuncu solundaki köşeye atar, sıradaki oyuncu oradan alır
+    // Köşelerde atılan taşlar: her oyuncu sağındaki köşeye atar, sıradaki oyuncu oradan alır
     g.koltuklar.forEach((k, koltuk) => {
       const [x, z] = KOSE[koltuk];
       const yigin = new THREE.Group();
