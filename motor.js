@@ -97,7 +97,7 @@ const Motor = (() => {
     }, 1000);
   }
 
-  // Süre bitince: ortadan çek (yandan alınan geri bırakılır), per/seri/çiftine girmeyen en küçük taşı at
+  // Süre bitince: ortadan çek (yandan alınan geri bırakılır), per/seri/çiftine girmeyen, işlek olmayan en küçük taşı at
   function sureBitti(no) {
     const p = o.oyuncular[no];
     if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no);
@@ -111,7 +111,9 @@ const Motor = (() => {
     const kalan = (p.acisTuru === 'cift' ? K.enIyiCiftler(p.el, o.okey) : K.enIyiGruplar(p.el, o.okey)).kalan;
     const adaylar = kalan.filter(t => !K.jokerMi(t, o.okey));
     const liste = adaylar.length ? adaylar : (kalan.length ? kalan : p.el);
-    return liste.reduce((a, t) => (K.deger(t, o.okey) < K.deger(a, o.okey) ? t : a));
+    // İşlek taş atılmaz (500 ceza): işlek olmayan en küçüğü at, hepsi işlekse en küçüğü
+    const islekOlmayan = liste.filter(t => !K.islekMi(t, o.masa, o.okey));
+    return (islekOlmayan.length ? islekOlmayan : liste).reduce((a, t) => (K.deger(t, o.okey) < K.deger(a, o.okey) ? t : a));
   }
 
   // ---------- Hamleler ----------

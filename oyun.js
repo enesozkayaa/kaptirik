@@ -349,13 +349,13 @@ function ucur(id, nereden) {
 }
 
 // ---------- Mesajlar ----------
+// Mesajlar ıstakanın üstündeki şeritte çıkar (masanın ortasını kapatmasın)
 function mesaj(html, tur = '') {
   const kutu = $('mesaj');
-  kutu.innerHTML = html;
-  kutu.className = tur;
-  kutu.hidden = false;
+  kutu.innerHTML = `<span>${html}</span>`;
+  kutu.className = `gorunur ${tur}`;
   clearTimeout(ui.mesajZaman);
-  ui.mesajZaman = setTimeout(() => (kutu.hidden = true), tur === 'ceza' ? 3500 : 2400);
+  ui.mesajZaman = setTimeout(() => (kutu.className = ''), tur === 'ceza' ? 3500 : 2600);
 }
 
 function sonuc(r) {
@@ -520,12 +520,18 @@ function birak(s, x, y) {
   if (!ust || ust.closest('#alt, #ust')) return;  // ıstaka dışı ama masada değil: geri döner
   const n = Sahne.noktada(x, y);
   const sonTas = benim().el.length === 1;
+  // İşlenecek grup: tam üstüne bırakıldıysa o; değilse taşın uyduğu en yakın grup (parmak tam isabet etmeyebilir)
+  const t = tasBul(id);
+  const uyar = gid => K.isleme(o.masa.find(g => g.id === gid), t, o.okey);
+  const ustundeki = n.tik?.tur === 'grup' ? n.tik.id : null;
+  const yakin = Sahne.yakinGruplar(n.x, n.z, 1.1).find(uyar);
+  const grupId = ustundeki && uyar(ustundeki) ? ustundeki : (!atmaYerindeMi(x, y) && yakin) || null;
   if (siraBende() && o.tur.cekti && sonTas) {
     // Son taşı ortaya fırlat: el biter
     sonuc(Motor.at(ui.benimNo, id));
-  } else if (n.tik?.tur === 'grup') {
+  } else if (grupId || ustundeki) {
     if (!siraBende()) return mesaj('Sıra sende değil.');
-    sonuc(hamle(() => Motor.isle(ui.benimNo, id, n.tik.id)));
+    sonuc(hamle(() => Motor.isle(ui.benimNo, id, grupId ?? ustundeki)));
   } else if (atmaYerindeMi(x, y)) {
     if (!siraBende()) return mesaj('Sıra sende değil.');
     if (!o.tur.cekti) return mesaj('Önce ortadan ya da soldan taş al.');

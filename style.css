@@ -45,7 +45,7 @@ details li { margin: 4px 0; }
 /* ---------- Üst bar ---------- */
 #ust {
   position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 6px 8px; padding-top: max(6px, env(safe-area-inset-top)); background: linear-gradient(#000a, #0000); font-size: 14px;
+  padding: 6px 8px; padding-top: max(6px, env(safe-area-inset-top)); background: linear-gradient(#000a, #0000); font-size: 14px; pointer-events: none;
 }
 #ust button { padding: 5px 9px; background: #0007; color: #fff; box-shadow: none; }
 #gostergeKutu { display: inline-flex; align-items: center; gap: 4px; }
@@ -75,16 +75,20 @@ details li { margin: 4px 0; }
 
 /* ---------- Mesaj ---------- */
 #mesaj {
-  position: fixed; z-index: 15; left: 50%; top: 38%; transform: translate(-50%, -50%); max-width: 90vw; text-align: center;
-  background: #000c; border-radius: 12px; padding: 10px 16px; font-size: 16px; pointer-events: none; animation: belir .2s;
+  height: 2.6em; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 4px;
+  font-size: 13.5px; text-align: center; pointer-events: none; opacity: 0; transition: opacity .2s;
 }
-#mesaj.hata { background: #7a1111e6; }
-#mesaj.ceza { background: #8a3c00ee; font-size: 18px; }
-#mesaj.iyi { background: #0d6b3ae6; }
-@keyframes belir { from { opacity: 0; transform: translate(-50%, -40%); } }
+#mesaj span { background: #000c; border-radius: 10px; padding: 4px 12px; max-width: 94vw; line-height: 1.25; }
+#mesaj.gorunur { opacity: 1; }
+#mesaj.hata span { background: #7a1111e6; }
+#mesaj.ceza span { background: #8a3c00ee; font-weight: 700; }
+#mesaj.iyi span { background: #0d6b3ae6; }
 
 /* ---------- Alt kısım: süre, düğmeler, ıstaka ---------- */
-#alt { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 0 6px max(6px, env(safe-area-inset-bottom)); }
+#alt { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 0 6px max(6px, env(safe-area-inset-bottom)); pointer-events: none; }
+#alt > *, #ust > * { pointer-events: auto; }
+#alt > #mesaj, #ust > #rakipler, #alt > #eylemler { pointer-events: none; }
+#eylemler button { pointer-events: auto; }
 #eylemler { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-bottom: 5px; }
 #eylemler button { padding: 7px 10px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
 #eylemler button.ikinci { background: #2a3a31; color: #f4efe2; box-shadow: 0 2px 0 #111; }

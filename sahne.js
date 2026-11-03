@@ -16,6 +16,7 @@ const Sahne = (() => {
   let tiklaninca = () => {};
   let tiklanabilir = [];
   let masadaBasildi = false;
+  let grupKutulari = [];  // masadaki grupların kapladığı alan (taş bırakırken yakındaki grubu bulmak için)
   const bakis = { konum: V(0, 8.6, 5.6), hedef: V(0, 0, 0.5) };
 
   // ---------- Kurulum ----------
@@ -269,6 +270,7 @@ const Sahne = (() => {
   function ciz(g) {
     while (dinamik.children.length) dinamik.remove(dinamik.children[0]);
     tiklanabilir = [];
+    grupKutulari = [];
     istakalariKur(g.koltuklar.map(k => k.ad), g.koltuklar.map(k => k.renk));
 
     // Rakiplerin ıstakalarındaki ters taşlar
@@ -373,6 +375,7 @@ const Sahne = (() => {
           grup.add(isik);
         }
         grup.position.set(x + TAS_G * M / 2, 0, z);
+        grupKutulari.push({ id: gr.id, x0: x, x1: x + gen, z0: z - TAS_Y * M / 2, z1: z + TAS_Y * M / 2 });
         grup.traverse(m => (m.userData.tik = { tur: 'grup', id: gr.id }));
         tiklanabilir.push(grup);
         dinamik.add(grup);
@@ -398,7 +401,20 @@ const Sahne = (() => {
     fare.set(((e.clientX - kutu.left) / kutu.width) * 2 - 1, -((e.clientY - kutu.top) / kutu.height) * 2 + 1);
     isin.setFromCamera(fare, kamera);
     const vurulan = isin.intersectObjects(tiklanabilir, true)[0];
-    if (vurulan?.object.userData.tik) tiklaninca(vurulan.object.userData.tik);
+    if (vurulan?.object.userData.tik) return tiklaninca(vurulan.object.userData.tik);
+    // Tam üstüne denk gelmediyse yakındaki köşe yığınını ya da desteyi say (parmak kocaman)
+    const p = isin.ray.intersectPlane(new THREE.Plane(V(0, 1, 0), 0), V());
+    if (!p) return;
+    const kose = KOSE.findIndex(([x, z]) => Math.hypot(p.x - x, p.z - z) < 1.0);
+    if (kose >= 0) tiklaninca({ tur: 'atilan', koltuk: kose });
+    else if (Math.hypot(p.x - DESTE.x, p.z - DESTE.z) < 0.7) tiklaninca({ tur: 'deste' });
+  }
+
+  // Masadaki noktaya yakın gruplar (en yakından uzağa), en fazla 'sinir' uzaklıkta
+  function yakinGruplar(x, z, sinir) {
+    return grupKutulari
+      .map(k => ({ id: k.id, d: Math.hypot(Math.max(k.x0 - x, 0, x - k.x1), Math.max(k.z0 - z, 0, z - k.z1)) }))
+      .filter(k => k.d <= sinir).sort((a, b) => a.d - b.d).map(k => k.id);
   }
 
   // Masadaki bir yerin ekrandaki konumu (taş uçurma animasyonu için)
@@ -435,7 +451,7 @@ const Sahne = (() => {
   }
 
   return {
-    RENKLER, KOSE, baslat, ciz, tasYuzu, ekranda, noktada, atmaYeri,
+    RENKLER, KOSE, baslat, ciz, tasYuzu, ekranda, noktada, atmaYeri, yakinGruplar,
     tiklayinca(fn) { tiklaninca = fn; },
   };
 })();
