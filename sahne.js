@@ -166,66 +166,73 @@ const Sahne = (() => {
     return grup;
   }
 
-  // Istakada dik duran rakip taşı (sırtı bize dönük)
-  function dikTas() {
-    const grup = new THREE.Group();
-    const govde = new THREE.Mesh(new THREE.BoxGeometry(0.31, 0.43, 0.07), govdeMalz);
-    govde.castShadow = true;
-    const sirt = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.42), new THREE.MeshStandardMaterial({ map: tasSirti(), roughness: 0.5 }));
-    sirt.position.z = 0.036;
-    grup.add(govde, sirt);
-    return grup;
-  }
-
   // ---------- Istaka ----------
-  // Gerçek okey ıstakası gibi: sahibinin tarafında yüksek bir sırt, önünde iki basamak (iki sıra taş).
+  // Masanın ortasına bakan dik ahşap pano; arkasında (sahibinin tarafında) iki üçgen destek ayağı.
+  // Taşlar panonun arkasında kalır, rakibin taşları görünmez. Oyuncunun adı panonun ön yüzüne kazılı.
   // Yerel eksenler: +x ıstaka boyunca, +z masanın ortasına doğru, sahibi -z tarafında oturur.
-  // Oyuncunun adı ön kenara (masanın ortasına bakan yüze) kazılı.
-  const ISTAKA_BOY = 4.4;
-  const UST_SIRA = { z: -0.12, y: 0.2 };   // sırta yakın üst basamak
-  const ALT_SIRA = { z: 0.16, y: 0.05 };   // önde alt basamak
-  function istaka(ad, renk) {
-    const grup = new THREE.Group();
-    // Yandan kesit (z, y): sırt → üst basamak → alt basamak → ön kenar
-    const kesit = [
-      [-0.36, 0], [0.34, 0], [0.34, 0.16], [0.3, 0.16], [0.3, 0.05], [-0.01, 0.05], [-0.01, 0.25],
-      [-0.05, 0.25], [-0.05, 0.2], [-0.29, 0.2], [-0.29, 0.66], [-0.325, 0.7], [-0.36, 0.66],
-    ];
-    const sekil = new THREE.Shape();
-    kesit.forEach(([z, y], i) => (i ? sekil.lineTo(-z, y) : sekil.moveTo(-z, y)));
-    const geo = new THREE.ExtrudeGeometry(sekil, { depth: ISTAKA_BOY, bevelEnabled: true, bevelSize: 0.012, bevelThickness: 0.02, bevelSegments: 2 });
-    geo.rotateY(Math.PI / 2);   // kesitin x'i yerel -z'ye, uzunluk yerel x'e döner
-    geo.translate(-ISTAKA_BOY / 2, 0, 0);
-    const govde = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x8a5530, roughness: 0.5 }));
-    govde.castShadow = govde.receiveShadow = true;
-    // Ön kenara kazılı ad (ahşap damarlı şerit)
-    const yazi = dokuKanvas(1024, 48, (g, w, h) => {
-      g.fillStyle = '#7a4a24';
+  const ISTAKA_BOY = 4.6, ISTAKA_YUK = 0.75;
+  function ahsapDokusu(gen, yuk, yaz) {
+    return dokuKanvas(gen, yuk, (g, w, h) => {
+      const ton = g.createLinearGradient(0, 0, 0, h);
+      ton.addColorStop(0, '#d9963f');
+      ton.addColorStop(1, '#b8712a');
+      g.fillStyle = ton;
       g.fillRect(0, 0, w, h);
-      for (let k = 0; k < 24; k++) {  // ağaç damarları
-        g.strokeStyle = `rgba(${Math.random() < 0.5 ? '50,25,10' : '150,95,50'},0.35)`;
-        g.lineWidth = 1 + Math.random() * 2;
+      for (let k = 0; k < 40; k++) {  // ağaç damarları
+        g.strokeStyle = `rgba(${Math.random() < 0.6 ? '120,60,15' : '240,180,110'},${0.15 + Math.random() * 0.2})`;
+        g.lineWidth = 1 + Math.random() * 2.5;
         g.beginPath();
         const y = Math.random() * h;
         g.moveTo(0, y);
-        g.bezierCurveTo(w * 0.3, y + 4, w * 0.6, y - 4, w, y + (Math.random() - 0.5) * 6);
+        g.bezierCurveTo(w * 0.3, y + 10 * Math.random(), w * 0.6, y - 10 * Math.random(), w, y + (Math.random() - 0.5) * 12);
         g.stroke();
       }
-      g.font = 'bold 38px Georgia, serif';
+      if (yaz) yaz(g, w, h);
+    });
+  }
+  const ayakMalz = new THREE.MeshStandardMaterial({ map: ahsapDokusu(256, 256), roughness: 0.55 });
+
+  function istaka(ad, renk) {
+    const grup = new THREE.Group();
+    const onYuz = ahsapDokusu(1024, 168, (g, w, h) => {
+      // Kazılı ad: koyu oyuk + alt kenarında ışık
+      g.font = 'bold 74px Georgia, serif';
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      g.fillStyle = 'rgba(255,220,170,0.35)';
-      g.fillText(ad, w / 2 + 1, h / 2 + 2);
-      g.fillStyle = '#2a1408';
+      g.fillStyle = 'rgba(255,225,170,0.5)';
+      g.fillText(ad, w / 2 + 2, h / 2 + 3);
+      g.fillStyle = 'rgba(95,40,8,0.85)';
       g.fillText(ad, w / 2, h / 2);
       g.fillStyle = renk;
       g.beginPath();
-      g.arc(w / 2 - g.measureText(ad).width / 2 - 22, h / 2, 9, 0, Math.PI * 2);
+      g.arc(w / 2 - g.measureText(ad).width / 2 - 40, h / 2, 16, 0, Math.PI * 2);
       g.fill();
     });
-    const serit = new THREE.Mesh(new THREE.PlaneGeometry(ISTAKA_BOY, 0.15), new THREE.MeshStandardMaterial({ map: yazi, roughness: 0.6 }));
-    serit.position.set(0, 0.08, 0.342 + 0.021);
-    grup.add(govde, serit);
+    const duz = new THREE.MeshStandardMaterial({ map: ahsapDokusu(512, 64), roughness: 0.55 });
+    const onMalz = new THREE.MeshStandardMaterial({ map: onYuz, roughness: 0.5 });
+    // Pano: hafif geriye (sahibine doğru) yatık
+    const pano = new THREE.Mesh(new THREE.BoxGeometry(ISTAKA_BOY, ISTAKA_YUK, 0.1), [duz, duz, duz, duz, onMalz, duz]);
+    pano.position.set(0, ISTAKA_YUK / 2, 0);
+    pano.rotation.x = -0.12;
+    // Ön alt pervaz
+    const pervaz = new THREE.Mesh(new THREE.BoxGeometry(ISTAKA_BOY + 0.1, 0.1, 0.16), duz);
+    pervaz.position.set(0, 0.05, 0.1);
+    // İki uçta üçgen destek ayakları (panonun arkasında)
+    const ucgen = new THREE.Shape();
+    ucgen.moveTo(0, 0);
+    ucgen.lineTo(0.55, 0);
+    ucgen.lineTo(0.08, ISTAKA_YUK * 0.95);
+    ucgen.lineTo(0, ISTAKA_YUK * 0.95);
+    const ayakGeo = new THREE.ExtrudeGeometry(ucgen, { depth: 0.09, bevelEnabled: true, bevelSize: 0.01, bevelThickness: 0.01, bevelSegments: 1 });
+    ayakGeo.rotateY(Math.PI / 2);  // şeklin x'i -z yönüne (sahibine doğru) döner
+    [-1, 1].forEach(yon => {
+      const ayak = new THREE.Mesh(ayakGeo, ayakMalz);
+      ayak.position.set(yon * (ISTAKA_BOY / 2 - 0.12) - 0.045, 0, 0);
+      ayak.castShadow = true;
+      grup.add(ayak);
+    });
+    pano.castShadow = pervaz.castShadow = true;
+    grup.add(pano, pervaz);
     return grup;
   }
 
@@ -284,29 +291,6 @@ const Sahne = (() => {
     tiklanabilir = [];
     grupKutulari = [];
     istakalariKur(g.koltuklar.map(k => k.ad), g.koltuklar.map(k => k.renk));
-
-    // Rakiplerin ıstakalarındaki ters taşlar: üst basamakta 8, alt basamakta 6, sırta yaslanmış.
-    // Karşıdakinin taşları daha dik durur; yandakiler yukarıdan görünsün diye biraz daha yatıktır.
-    g.koltuklar.forEach((k, koltuk) => {
-      if (koltuk === 0) return;
-      const yer = KOLTUK[koltuk];
-      const egim = koltuk === 2 ? 0.22 : 0.6;
-      [[UST_SIRA, 8], [ALT_SIRA, 6]].forEach(([sira, n]) => {
-        for (let i = 0; i < n; i++) {
-          const ayak = new THREE.Group();   // taşın basamağa değen alt kenarı
-          const yerel = V((i - (n - 1) / 2) * 0.33, sira.y, sira.z).applyAxisAngle(V(0, 1, 0), yer.don);
-          ayak.position.set(yer.x + yerel.x, yerel.y, yer.z + yerel.z);
-          ayak.rotation.set(0, yer.don, 0);
-          const yaslan = new THREE.Group();
-          yaslan.rotation.x = -egim;
-          const t = dikTas();
-          t.position.y = 0.215;
-          yaslan.add(t);
-          ayak.add(yaslan);
-          dinamik.add(ayak);
-        }
-      });
-    });
 
     // Ortada deste ve gösterge
     const deste = new THREE.Group();

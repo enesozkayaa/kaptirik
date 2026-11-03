@@ -102,10 +102,17 @@ details li { margin: 4px 0; }
 
 /* Istaka: 2 sıra x 15 yuva, ahşap */
 #istaka {
-  --g: min(44px, calc((100vw - 60px) / 15));
+  --g: min(44px, calc((100vw - 72px) / 15));
   display: grid; grid-template-columns: repeat(15, var(--g)); gap: 2px; justify-content: center;
-  background: linear-gradient(#b97a3e, #8a5524); border-radius: 10px; padding: 5px; margin: 0 auto;
-  width: max-content; box-shadow: inset 0 -4px 0 #5e3612, 0 4px 14px #000a; touch-action: none;
+  /* Turuncu ahşap ıstaka, iki uçta metal kapak (her sıranın altında ince bir basamak çizgisi) */
+  background:
+    linear-gradient(transparent calc(50% - 2px), #7a4312 calc(50% - 2px), #e9a95a calc(50% + 1px), transparent calc(50% + 1px)),
+    repeating-linear-gradient(92deg, #0000 0 18px, #ffffff0d 18px 20px, #0000 20px 46px),
+    linear-gradient(#e19a45, #c47a2c 55%, #a8601c);
+  border-radius: 6px; padding: 5px 9px; margin: 0 auto; position: relative;
+  border-left: 7px solid #b9bec4; border-right: 7px solid #b9bec4;
+  border-image: linear-gradient(#eef1f4, #8d949b) 1;
+  width: max-content; box-shadow: inset 0 -4px 0 #7a4312, 0 4px 14px #000a; touch-action: none;
 }
 .yuva.hedef { background: #ffffff40; box-shadow: inset 0 0 0 2px #fff8; }
 .tas.tutuluyor { opacity: .25; }
@@ -114,7 +121,7 @@ details li { margin: 4px 0; }
 /* Uçan / parmakla tutulan taş */
 .ucan { position: fixed; z-index: 40; pointer-events: none; transition: transform .45s cubic-bezier(.2,.8,.3,1); }
 .ucan.tutulan { transition: none; transform: scale(1.15); filter: drop-shadow(0 8px 10px #000a); }
-.yuva { width: var(--g); height: calc(var(--g) * 1.38); border-radius: 4px; background: #0001; }
+.yuva { width: var(--g); height: calc(var(--g) * 1.38); border-radius: 4px; background: #00000012; }
 .yuva:nth-child(n+16) { margin-top: 3px; }
 
 /* Taşlar */
