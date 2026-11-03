@@ -249,8 +249,8 @@ const Motor = (() => {
     o.masa.push({ id: ++o.grupSayaci, sahip: no, tur: g.tur, sirali: g.sirali, temsil: g.temsil, deger: g.deger });
   }
 
-  // Elindeki bir taşı masadaki bir gruba işle
-  function isle(no, tasId, grupId) {
+  // Elindeki bir taşı masadaki bir gruba işle. kayit: geri alma için önceki hâli sakla
+  function isle(no, tasId, grupId, kayit = true) {
     if (!siraKimde(no)) return hata('Sıra sende değil.');
     if (!o.tur.cekti) return hata('Önce taş çek.');
     const p = o.oyuncular[no];
@@ -261,7 +261,7 @@ const Motor = (() => {
     const s = K.isleme(g, t, o.okey);
     if (!s) return hata('Bu taş bu gruba uymuyor.');
     if (!s.takas && p.el.length === 1) return hata('Son taşını işleyemezsin: ortaya atarak bitir.');
-    kaydet();
+    if (kayit) kaydet();
     p.el.splice(p.el.indexOf(t), 1);
     const sahip = o.oyuncular[g.sahip];
     if (s.takas) {
@@ -305,6 +305,34 @@ const Motor = (() => {
     degisti();
     siraBasla((no + 1) % 4);
     return tamam();
+  }
+
+  // Elindeki uyan bütün taşları işle (okey hariç; okeyin yerine gerçek taş koymak dahil).
+  // Hepsi tek hamle sayılır: bir kez geri alınca hepsi geri gelir. Atacak bir taş elde kalır.
+  function hepsiniIsle(no) {
+    if (!siraKimde(no)) return hata('Sıra sende değil.');
+    if (!o.tur.cekti) return hata('Önce taş çek.');
+    const p = o.oyuncular[no];
+    if (!p.acti) return hata('İşlemek için önce elini açmalısın.');
+    kaydet();
+    let sayi = 0, devam = true;
+    while (devam) {
+      devam = false;
+      for (const t of p.el) {
+        if (K.jokerMi(t, o.okey)) continue;
+        const g = o.masa.find(x => K.isleme(x, t, o.okey));
+        if (g && isle(no, t.id, g.id, false).ok) {
+          sayi++;
+          devam = true;
+          break;
+        }
+      }
+    }
+    if (!sayi) {
+      o.tur.geriAl.pop();
+      return hata('İşlenecek taşın yok.');
+    }
+    return tamam({ sayi });
   }
 
   // ---------- Geri alma ----------
@@ -480,7 +508,7 @@ const Motor = (() => {
     TUR_SURESI,
     dinleyici(ad, fn) { dinle[ad] = fn; },
     get oyun() { return o; },
-    yeniOyun, sonrakiEl, ortadanCek, yandanAl, geriBirak, ac, isle, at, geriAl, geriAlinabilir, gereken, kimseAcmadi, yandakiTas, enKotuTas,
+    yeniOyun, sonrakiEl, ortadanCek, yandanAl, geriBirak, ac, isle, hepsiniIsle, at, geriAl, geriAlinabilir, gereken, kimseAcmadi, yandakiTas, enKotuTas,
   };
 })();
 

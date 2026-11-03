@@ -350,6 +350,10 @@ function dugmeleriCiz() {
       const koyulacak = ben.acisTuru === 'cift' ? dc.gruplar.length : ds.gruplar.length;
       if (koyulacak) d.push(`<button data-e="${ben.acisTuru === 'cift' ? 'acCift' : 'acSeri'}">Yere koy</button>`);
     }
+    // Yardımlı modda uyan taşların hepsini tek basışla işle (yanlışsa "Geri al" hepsini geri getirir)
+    if (ben.acti && o.ayar.yardimli && ben.el.some(t => !K.jokerMi(t, o.okey) && K.islekMi(t, o.masa, o.okey))) {
+      d.push('<button data-e="hepsiniIsle">⚡ Hepsini işle</button>');
+    }
     if (Motor.geriAlinabilir()) d.push('<button data-e="geriAl" class="uyariBtn">↶ Geri al</button>');
     if (o.tur.yandan && ben.el.includes(o.tur.yandan)) d.push('<button data-e="geri" class="uyariBtn">↩️ Geri bırak</button>');
   }
@@ -411,7 +415,10 @@ function eylem(e) {
   } else if (e === 'geri') {
     if (sonuc(Motor.geriBirak(ui.benimNo))) mesaj('Taşı geri bıraktın. Şimdi ortadaki desteye dokunup taş çek.');
   }
-  else if (e === 'geriAl') {
+  else if (e === 'hepsiniIsle') {
+    const r = hamle(() => Motor.hepsiniIsle(ui.benimNo));
+    if (sonuc(r)) mesaj(`${r.sayi} taş işlendi. Yanlışsa “Geri al”.`, 'iyi');
+  } else if (e === 'geriAl') {
     const once = ui.yuvaYigini.pop();
     if (once) ui.yuvalar = once;
     sonuc(Motor.geriAl(ui.benimNo));
