@@ -229,10 +229,12 @@ const Kurallar = (() => {
   // ---------- İşleme ----------
   // Bu taş masadaki bu gruba işlenebilir mi? Okeyin yerine gerçek taş konuyorsa "takas" döner.
   // Çiftlere taş eklenmez ama içindeki okey gerçek taşla takas edilebilir.
+  // 3'lü perdeki okey alınmaz: gerçek taş yanına eklenir (per 4'lü olur); okey ancak 4'lü perden alınır.
   function isleme(grup, tas, okey) {
     // Takas: grupta, bu taşın yerine geçen bir okey varsa
     const e = etkin(tas, okey);
-    if (!jokerMi(tas, okey)) {
+    const takasOlur = !(grup.tur === 'per' && grup.sirali.length < 4);
+    if (!jokerMi(tas, okey) && takasOlur) {
       const yer = grup.temsil.findIndex((tm, k) => jokerMi(grup.sirali[k], okey) && tm.renk === e.renk && tm.sayi === e.sayi);
       if (yer >= 0) return { takas: true, yer };
     }

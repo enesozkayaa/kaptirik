@@ -17,7 +17,8 @@
 const Motor = (() => {
   const K = Kurallar;
   const TUR_SURESI = 30;     // saniye
-  const ACMA_SURESI = 60;    // elini açınca düşünmek için verilen süre (saniye)
+  const ACMA_SURESI = 60;
+  const ISLEME_SINIRI = 2;   // bir gruba bir turda en fazla bu kadar taş işlenir    // elini açınca düşünmek için verilen süre (saniye)
   const BOT_HIZ = 900;       // botun her hamlesi arasında bekleme (ms)
 
   let o = null;
@@ -76,7 +77,7 @@ const Motor = (() => {
   function siraBasla(no, ilk = false) {
     o.sira = no;
     const p = o.oyuncular[no];
-    o.tur = { cekti: ilk, yandan: null, acikBasta: p.acti, kalan: TUR_SURESI, toplam: TUR_SURESI, sureSifirlandi: false, geriAl: [] };
+    o.tur = { cekti: ilk, yandan: null, acikBasta: p.acti, kalan: TUR_SURESI, toplam: TUR_SURESI, sureSifirlandi: false, geriAl: [], islenen: {} };
     zamanlayiciBaslat();
     degisti();
     olay('sira', { no });
@@ -261,6 +262,9 @@ const Motor = (() => {
     const s = K.isleme(g, t, o.okey);
     if (!s) return hata('Bu taş bu gruba uymuyor.');
     if (!s.takas && p.el.length === 1) return hata('Son taşını işleyemezsin: ortaya atarak bitir.');
+    if (!s.takas && (o.tur.islenen[grupId] ?? 0) >= ISLEME_SINIRI) {
+      return hata(`Bir gruba bir turda en fazla ${ISLEME_SINIRI} taş işlenir. Diğerini bir sonraki turunda işle.`);
+    }
     if (kayit) kaydet();
     p.el.splice(p.el.indexOf(t), 1);
     const sahip = o.oyuncular[g.sahip];
@@ -275,6 +279,7 @@ const Motor = (() => {
       olay('takas', { no, grupId });
     } else {
       Object.assign(g, { sirali: s.yeni.sirali, temsil: s.yeni.temsil, deger: s.yeni.deger });
+      o.tur.islenen[grupId] = (o.tur.islenen[grupId] ?? 0) + 1;
       if (K.jokerMi(t, o.okey) && g.sahip !== no) ceza(g.sahip, 100, `${p.ad}, ${sahip.ad} grubuna okey koydu (çakallık)`);
       olay('isledi', { no, grupId });
     }
@@ -291,6 +296,7 @@ const Motor = (() => {
     const t = p.el.find(x => x.id === tasId);
     if (!t) return hata('Taş bulunamadı.');
     const bitis = p.el.length === 1;
+    if (bitis && !p.acti) return hata('Elini açmadan bitiremezsin.');
     p.el.splice(p.el.indexOf(t), 1);
     // İşlek taş atmak 500 ceza (son taşı atıp bitirmek hariç)
     if (!bitis && K.islekMi(t, o.masa, o.okey)) ceza(no, 500, `${p.ad} işlek taş attı`);
@@ -320,7 +326,7 @@ const Motor = (() => {
       devam = false;
       for (const t of p.el) {
         if (K.jokerMi(t, o.okey)) continue;
-        const g = o.masa.find(x => K.isleme(x, t, o.okey));
+        const g = o.masa.find(x => isleyebilir(t, x));
         if (g && isle(no, t.id, g.id, false).ok) {
           sayi++;
           devam = true;
@@ -333,6 +339,12 @@ const Motor = (() => {
       return hata('İşlenecek taşın yok.');
     }
     return tamam({ sayi });
+  }
+
+  // Bu taş bu gruba şimdi işlenebilir mi? (uyuyor mu ve bu turun işleme sınırı dolmadı mı)
+  function isleyebilir(t, g) {
+    const s = K.isleme(g, t, o.okey);
+    return !!s && (s.takas || (o.tur.islenen[g.id] ?? 0) < ISLEME_SINIRI);
   }
 
   // ---------- Online ----------
@@ -375,6 +387,7 @@ const Motor = (() => {
       masa: o.masa.map(g => ({ ...g, sirali: [...g.sirali], temsil: [...g.temsil] })),
       esik: o.esik,
       grupSayaci: o.grupSayaci,
+      islenen: { ...o.tur.islenen },
       ters: tumTaslar.map(t => [t, t.ters]),
     });
   }
@@ -393,6 +406,7 @@ const Motor = (() => {
     o.masa = k.masa;
     o.esik = k.esik;
     o.grupSayaci = k.grupSayaci;
+    o.tur.islenen = k.islenen;
     k.ters.forEach(([t, ters]) => (t.ters = ters));
     olay('geriAldi', { no });
     degisti();
@@ -518,9 +532,8 @@ const Motor = (() => {
         islendi = false;
         for (const t of [...p.el]) {
           if (K.jokerMi(t, o.okey)) continue;
-          const g = o.masa.find(x => K.isleme(x, t, o.okey));
-          if (g && p.acisTuru === 'seri') {
-            isle(no, t.id, g.id);
+          const g = o.masa.find(x => isleyebilir(t, x));
+          if (g && p.acisTuru === 'seri' && isle(no, t.id, g.id).ok) {
             islendi = true;
             await bekle(400);
             break;
