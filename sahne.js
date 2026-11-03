@@ -339,19 +339,22 @@ const Sahne = (() => {
       dinamik.add(yigin);
     });
 
-    // Açılan gruplar: her oyuncunun grupları kendi önündeki alana dizilir (taşlar bize doğru okunur)
-    const ALAN = [
-      { x0: -2.9, x1: 2.9, z0: 1.0, satir: 0.6 },     // alt
-      { x0: 0.8, x1: 3.0, z0: -1.0, satir: 0.6 },     // sağ
-      { x0: -2.9, x1: 2.9, z0: -2.45, satir: 0.6 },   // üst
-      { x0: -3.0, x1: -0.8, z0: -1.0, satir: 0.6 },   // sol
-    ];
-    const M = 1.55;  // açılan taşlar büyük olsun, okunsun
+    // Açılan gruplar: her oyuncunun grupları kendi önüne, kendisine dönük dizilir (gerçek masadaki gibi):
+    // benimkiler bana doğru okunur, karşıdakininkiler bana ters, yandakilerinki yan görünür.
+    // Alan her koltuk için aynı tanımlanır ("sahibi aşağıda oturuyormuş gibi") ve koltuğun yönüne döndürülür.
+    // Alanlar fırıldak gibi kaydırılmıştır, birbirine binmez.
+    const ALAN = { x0: -2.9, x1: 0.95, z0: 1.05, satir: 0.52 };
+    const DONUS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];  // alt, sağ, üst, sol
+    const M = 1.45;  // açılan taşlar büyük olsun, okunsun
     const AR = TAS_G * M + 0.01;
+    const yereDon = (x, z, a) => ({ x: x * Math.cos(a) + z * Math.sin(a), z: -x * Math.sin(a) + z * Math.cos(a) });
     const koltugaGore = [[], [], [], []];
     g.masa.forEach(gr => koltugaGore[g.koltukNo(gr.sahip)].push(gr));
     koltugaGore.forEach((liste, koltuk) => {
-      const a = ALAN[koltuk];
+      const a = ALAN;
+      const kap = new THREE.Group();
+      kap.rotation.y = DONUS[koltuk];
+      dinamik.add(kap);
       let x = a.x0, z = a.z0;
       liste.forEach(gr => {
         const gen = gr.sirali.length * AR;
@@ -375,10 +378,12 @@ const Sahne = (() => {
           grup.add(isik);
         }
         grup.position.set(x + TAS_G * M / 2, 0, z);
-        grupKutulari.push({ id: gr.id, x0: x, x1: x + gen, z0: z - TAS_Y * M / 2, z1: z + TAS_Y * M / 2 });
+        // Masadaki gerçek kapladığı alan (taş bırakırken yakındaki grubu bulmak için)
+        const k1 = yereDon(x, z - TAS_Y * M / 2, DONUS[koltuk]), k2 = yereDon(x + gen, z + TAS_Y * M / 2, DONUS[koltuk]);
+        grupKutulari.push({ id: gr.id, x0: Math.min(k1.x, k2.x), x1: Math.max(k1.x, k2.x), z0: Math.min(k1.z, k2.z), z1: Math.max(k1.z, k2.z) });
         grup.traverse(m => (m.userData.tik = { tur: 'grup', id: gr.id }));
         tiklanabilir.push(grup);
-        dinamik.add(grup);
+        kap.add(grup);
         x += gen + 0.12;
       });
     });
