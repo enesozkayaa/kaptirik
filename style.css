@@ -169,11 +169,8 @@ details li { margin: 4px 0; }
 #elSonuTablo .arti { color: #ff6b6b; font-weight: 700; }
 #elSonuTablo .eksi { color: #7dff9b; font-weight: 700; }
 #elSonuTablo .sifir { opacity: .4; font-weight: 400; }
-#elSonuTablo tr.elSatiri td { padding-top: 5px; font-size: 10px; letter-spacing: -.2px; }
-#elSonuTablo tr.elSatiri td.elNo { border-bottom: 1px solid #ffffff1a; }
-#elSonuTablo tr.puanSatiri td { font-size: 13px; font-weight: 800; padding-bottom: 5px; border-bottom: 1px solid #ffffff1a; }
-#elSonuTablo tr.puanSatiri td.sifir { font-weight: 400; }
-#elSonuTablo td:nth-child(2n+2), #elSonuTablo tr.puanSatiri td { border-left: 1px solid #ffffff12; }
+#elSonuTablo tr.elSatiri td { padding: 7px 1px; font-size: 10.5px; letter-spacing: -.2px; border-bottom: 1px solid #ffffff1a; }
+#elSonuTablo tr.elSatiri td:nth-child(2n+2), #elSonuTablo .toplamSatir td + td { border-left: 1px solid #ffffff12; }
 #elSonuTablo tr.suren td { background: #ffffff0a; }
 #elSonuTablo tr.suren td.elNo::after { content: ' ⏳'; font-size: 9px; }
 #elSonuTablo tr.oynanmadi td { opacity: .5; }

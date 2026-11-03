@@ -712,8 +712,8 @@ function olay(tip, v) {
 const toplamla = (liste, isaret) => liste.filter(g => Math.sign(g.puan) === isaret).reduce((a, g) => a + g.puan, 0);
 
 // El el puan tablosu: her oyuncunun altında "Ceza" ve "Düşer" diye iki sütun var.
-// Her elin satırında o elde yediği ceza (kırmızı) ve aldığı düşer (yeşil), hemen altındaki satırda
-// o ana kadarki toplam puanı yazar. Henüz oynanmamış ellerde – görünür.
+// Her elin satırında o elde yediği ceza (kırmızı) ve aldığı düşer (yeşil) yazar; toplam en altta.
+// Henüz oynanmamış ellerde – görünür.
 function elTablosuHtml() {
   const o = Masa.oyun;
   const oyuncular = o.oyuncular.map((p, i) => ({ p, i }));
@@ -727,20 +727,18 @@ function elTablosuHtml() {
   for (let el = 1; el <= o.ayar.elSayisi; el++) {
     const oynandi = el <= o.elNo;
     const sinif = `${el === o.elNo && o.asama === 'oyun' ? 'suren' : ''}${oynandi ? '' : ' oynanmadi'}`;
-    let ust = '', alt = '';
+    let ust = '';
     oyuncular.forEach(({ p }, k) => {
       if (!oynandi) {
         ust += '<td class="sifir">–</td><td class="sifir">–</td>';
-        alt += '<td colspan="2" class="toplamHucre sifir">–</td>';
         return;
       }
       const kayit = p.gecmis.filter(g => g.el === el);
       const ceza = toplamla(kayit, 1), duser = toplamla(kayit, -1);
       birikim[k] += ceza + duser;
       ust += `<td class="${ceza ? 'arti' : 'sifir'}">${ceza ? `+${ceza}` : '0'}</td><td class="${duser ? 'eksi' : 'sifir'}">${duser || '0'}</td>`;
-      alt += `<td colspan="2" class="toplamHucre">${birikim[k]}</td>`;
     });
-    govde += `<tr class="elSatiri ${sinif}"><td rowspan="2" class="elNo">${el}</td>${ust}</tr><tr class="puanSatiri ${sinif}">${alt}</tr>`;
+    govde += `<tr class="elSatiri ${sinif}"><td class="elNo">${el}</td>${ust}</tr>`;
   }
   // En düşük toplam önde: 👑 (herkes eşitse kimse)
   const enAz = Math.min(...birikim);
