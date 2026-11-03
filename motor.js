@@ -101,7 +101,7 @@ const Motor = (() => {
   // Süre bitince: ortadan çek (yandan alınan geri bırakılır), per/seri/çiftine girmeyen, işlek olmayan en küçük taşı at
   function sureBitti(no) {
     const p = o.oyuncular[no];
-    if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no);
+    if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no, true);
     if (!o.tur.cekti) ortadanCek(no);
     if (o.asama !== 'oyun' || o.sira !== no) return;
     olay('sureBitti', { no });
@@ -143,6 +143,7 @@ const Motor = (() => {
   function yandanAl(no) {
     if (!siraKimde(no)) return hata('Sıra sende değil.');
     if (o.tur.cekti) return hata('Bu tur zaten taş çektin.');
+    if (o.tur.geriBirakti) return hata('Bu taşı geri bıraktın. Ortadan çek.');
     const kimden = oncekiNo(no);
     const t = o.oyuncular[kimden].atilanlar.pop();
     if (!t) return hata('Yanda alınacak taş yok.');
@@ -155,8 +156,8 @@ const Motor = (() => {
     return tamam({ tas: t });
   }
 
-  // Yandan alınan taş geri bırakılır, yerine ortadan çekilir
-  function geriBirak(no) {
+  // Yandan alınan taş geri bırakılır; oyuncu sonra ortadan kendisi çeker (botlar ve süre bitince otomatik çekilir)
+  function geriBirak(no, otomatikCek = false) {
     if (!siraKimde(no)) return hata('Sıra sende değil.');
     const p = o.oyuncular[no];
     const t = o.tur.yandan;
@@ -165,8 +166,11 @@ const Motor = (() => {
     o.oyuncular[o.tur.yandanKimden].atilanlar.push(t);
     o.tur.yandan = null;
     o.tur.cekti = false;
+    o.tur.geriBirakti = true;
     olay('geriBirakti', { no, tas: t });
-    return ortadanCek(no);
+    if (otomatikCek) return ortadanCek(no);
+    degisti();
+    return tamam();
   }
 
   // Açma için gereken en az değer (masada açılmış en yüksek değerden 1 fazla)
@@ -442,7 +446,7 @@ const Motor = (() => {
       if (g.deger >= gereken()) ac(no, 'seri');
       else if (c.ciftler.length >= K.CIFT_SAYISI + 1 && (kimseAcmadi() || c.deger >= gereken())) ac(no, 'cift');
       if (!devam()) return;
-      if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no);
+      if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no, true);
       if (p.acti) await bekle(BOT_HIZ);
     }
     if (!devam()) return;
@@ -464,7 +468,7 @@ const Motor = (() => {
           }
         }
       }
-      if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no);
+      if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no, true);
     }
     if (!devam()) return;
     await bekle(BOT_HIZ / 2);

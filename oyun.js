@@ -396,7 +396,9 @@ function eylem(e) {
     const c = K.enIyiCiftler(ben.el, o.okey);
     istakayaDiz(c.ciftler.map(x => x.sirali), c.kalan.sort((a, b) => a.renk - b.renk || a.sayi - b.sayi));
     mesaj(`${c.ciftler.length} çift · toplam <b>${c.deger}</b>`);
-  } else if (e === 'geri') sonuc(Motor.geriBirak(ui.benimNo));
+  } else if (e === 'geri') {
+    if (sonuc(Motor.geriBirak(ui.benimNo))) mesaj('Taşı geri bıraktın. Şimdi ortadaki desteye dokunup taş çek.');
+  }
   else if (e === 'geriAl') {
     const once = ui.yuvaYigini.pop();
     if (once) ui.yuvalar = once;
