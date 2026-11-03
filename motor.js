@@ -331,6 +331,7 @@ const Motor = (() => {
     if (!o.tur.cekti) return hata('Önce taş çek.');
     const p = o.oyuncular[no];
     if (!p.acti) return hata('İşlemek için önce elini açmalısın.');
+    if (!o.ayar.yardimli) return hata('Yardımsız modda taşları tek tek işlersin.');
     kaydet();
     let sayi = 0, devam = true;
     while (devam) {
