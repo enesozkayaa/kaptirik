@@ -203,7 +203,7 @@ details li { margin: 4px 0; }
   flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid #5d4a22; background: #0e1a14; color: inherit;
   text-transform: uppercase; letter-spacing: 3px; font-weight: 700; text-align: center;
 }
-#geriDonBtn { width: 100%; margin-top: 8px; }
+#geriDonBtn, #odaIptalBtn { width: 100%; margin-top: 8px; text-align: center; }
 #onlineDurum { margin-top: 10px; font-size: 14px; text-align: center; line-height: 1.4; }
 #onlineDurum .odaKodu { font-size: 26px; letter-spacing: 4px; color: #f6d58a; user-select: all; }
 .lobiListesi { text-align: left; margin: 10px auto; padding-left: 24px; max-width: 260px; }
