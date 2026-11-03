@@ -318,11 +318,11 @@ function ciz() {
   }
 }
 
-// Sağdaki yuvarlak sayaç: sıradaki oyuncunun kalan süresi (çerçeve rengi o oyuncunun rengi)
+// Sağdaki yuvarlak sayaç: sıra bendeyken kalan süre
 function sayaciGoster(kalan, toplam) {
   const o = Motor.oyun;
   const s = $('sayac');
-  s.hidden = o.asama !== 'oyun';
+  s.hidden = o.asama !== 'oyun' || o.sira !== ui.benimNo;  // sadece sıra bendeyken
   s.querySelector('b').textContent = Math.max(0, kalan);
   s.style.setProperty('--oran', Math.max(0, kalan / toplam));
   s.classList.toggle('az', kalan <= 10);
@@ -626,8 +626,8 @@ function olay(tip, v) {
     $('sureCubugu').classList.toggle('az', v.kalan <= 10);
     sayaciGoster(v.kalan, v.toplam || Motor.TUR_SURESI);
     if (v.no === ui.benimNo) {
+      // Sadece süre azalınca ses: son 5 saniye
       if (v.kalan <= 5 && v.kalan > 0) Ses.uyari();
-      else if (v.kalan <= 10) Ses.tik();
     }
   } else if (tip === 'sureBitti' && v.no === ui.benimNo) {
     mesaj('⏰ Süren bitti: ortadan çekildi, perine girmeyen en küçük taşın atıldı.', 'hata');
