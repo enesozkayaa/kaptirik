@@ -6,7 +6,7 @@
 // Oyunu güncelleyip yüklerken ONBELLEK numarasını 1 artır.
 // =============================================================
 
-const ONBELLEK = 'kaptirik-v11';
+const ONBELLEK = 'kaptirik-v12';
 const DOSYALAR = [
   './', 'index.html', 'style.css', 'kurallar.js', 'motor.js', 'ses.js', 'sahne.js', 'oyun.js',
   'manifest.webmanifest', 'ikonlar/ikon-192.png', 'ikonlar/ikon-512.png',

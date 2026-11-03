@@ -101,6 +101,8 @@ const Ses = (() => {
     },
     // Süre azalırken saat gibi tıklama, son saniyelerde çift tık
     tik: () => vurus(0, 0.18, 0.5),
+    // Süre azalırken tek, tok vuruş (son saniyelerde sıklaşır)
+    sayac: () => vurus(0, 0.6, 1),
     uyari: () => {
       vurus(0, 0.5, 0.9);
       vurus(0.12, 0.5, 0.9);
