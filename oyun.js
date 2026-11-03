@@ -359,7 +359,7 @@ function kartlariYerlestir() {
   });
 }
 // Kamera kendi resize dinleyicisinde güncellenir; kartlar ondan sonra (bir sonraki karede) yerleşsin
-window.addEventListener('resize', () => setTimeout(() => Masa.oyun && kartlariYerlestir(), 30));
+window.addEventListener('resize', () => setTimeout(() => Masa.oyun && ciz(), 30));  // telefon yan çevrilince sehpa yeri de değişir
 
 const tasEl = id => document.querySelector(`#istaka .tas[data-id="${id}"]`);
 

@@ -504,7 +504,8 @@ const Sahne = (() => {
       if (!urunler.length) return;
       const kap = new THREE.Group();
       const benimYatay = koltuk === 0 && kamera.aspect > 1;
-      const yer = benimYatay ? { x: 5.75, z: 2.7 } : yereDon(2.95, 4.6, DONUS[koltuk]);
+      // Masanın (ahşap kenarıyla 5.1) tamamen dışında dursun
+      const yer = benimYatay ? { x: 5.95, z: 2.7 } : yereDon(3.0, 5.9, DONUS[koltuk]);
       kap.position.set(yer.x, 0, yer.z);
       kap.rotation.y = DONUS[koltuk];
       kap.add(sehpa());
