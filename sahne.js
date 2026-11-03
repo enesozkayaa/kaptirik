@@ -326,7 +326,7 @@ const Sahne = (() => {
   }
 
   // Oyuncunun yanındaki küçük ahşap sehpa (tepsi gibi kenarlı)
-  const SEHPA_Y = 0.16;
+  const SEHPA_Y = 0.42;  // masanın ahşap kenarından (0.23) yüksek: masanın yanında ayrı duran sehpa gibi görünsün
   const SEHPA_YERI = { tost: [0, 0.02], cay: [-0.36, -0.22], kahve: [0.36, -0.22], su: [0.4, 0.22], simit: [-0.36, 0.24] };
   let sehpaMalz;
   function sehpa() {
@@ -337,8 +337,9 @@ const Sahne = (() => {
     const kenar = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.025, 8, 40), sehpaMalz);
     kenar.rotation.x = -Math.PI / 2;
     kenar.position.y = SEHPA_Y;
-    const ayak = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, SEHPA_Y, 12), sehpaMalz);
-    ayak.position.y = SEHPA_Y / 2 - 0.05;
+    // Ayak masanın altına (yere) kadar iner
+    const ayak = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.12, SEHPA_Y + 1, 12), sehpaMalz);
+    ayak.position.y = (SEHPA_Y - 1) / 2 - 0.05;
     ust.castShadow = ust.receiveShadow = true;
     grup.add(ust, kenar, ayak);
     return grup;
@@ -505,7 +506,7 @@ const Sahne = (() => {
       const kap = new THREE.Group();
       const benimYatay = koltuk === 0 && kamera.aspect > 1;
       // Masanın (ahşap kenarıyla 5.1) tamamen dışında dursun
-      const yer = benimYatay ? { x: 5.95, z: 2.7 } : yereDon(3.0, 5.9, DONUS[koltuk]);
+      const yer = benimYatay ? { x: 5.85, z: 2.5 } : yereDon(3.0, 6.0, DONUS[koltuk]);
       kap.position.set(yer.x, 0, yer.z);
       kap.rotation.y = DONUS[koltuk];
       kap.add(sehpa());
