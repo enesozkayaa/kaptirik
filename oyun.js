@@ -306,7 +306,8 @@ function ciz() {
     kutu.style.setProperty('--renk', KOLTUK_RENKLERI[no]);
     // Avatarda ismin son kelimesinin baş harfi ("Bot Zeynep" → Z)
     const harf = [...(p.ad.trim().split(/\s+/).at(-1) || '?')][0].toLocaleUpperCase('tr');
-    kutu.innerHTML = `<span class="avatar">${guvenli(harf)}</span>`
+    const seste = typeof Ag !== 'undefined' && Ag.sesteMi(no);
+    kutu.innerHTML = `<span class="avatar">${guvenli(harf)}${seste ? '<span class="mik" title="Sesli sohbette">🎙️</span>' : ''}</span>`
       + `<span class="bilgi"><b>${guvenli(p.ad)}</b><span class="puan ${puan < 0 ? 'eksi' : ''}">${puan}</span></span>`;
   });
   kartlariYerlestir();

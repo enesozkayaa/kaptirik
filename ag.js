@@ -13,6 +13,8 @@
 //   ev → misafir: { tip: 'kabul', no, surum }  { tip: 'lobi', koltuklar, ayar }  { tip: 'red', neden }
 //                 { tip: 'durum', o }  { tip: 'olay', t, v }  { tip: 'hata', eylem, mesaj }  { tip: 'sonuc', eylem, r }
 //                 { tip: 'sohbet', no, ad, metin }  { tip: 'nabiz' }
+//   sesli sohbet: misafir → ev { tip: 'ses', acik }   ev → herkese { tip: 'sesListesi', liste: [{ no, peerId }] }
+//   (ses kendisi PeerJS sesli aramasıyla oyuncular arasında doğrudan gider)
 // =============================================================
 
 // Başkasının odasındayken masa: oda sahibinden gelen durumu tutar, hamleleri ona yollar.
@@ -37,7 +39,7 @@ const Uzak = {
 
 const Ag = (() => {
   // Online kısmı her değiştiğinde 1 artır: eski sürümle gelen oyuncu odaya alınmaz
-  const SURUM = 1;
+  const SURUM = 2;
   const ODA_ONEKI = 'kaptirik-oda-';
   const KOD_HARFLERI = 'ABCDEFGHJKLMNPRSTUVYZ23456789';  // karışabilecek O/0, I/1 yok
   const KOD_UZUNLUK = 5;
@@ -98,14 +100,18 @@ const Ag = (() => {
     return false;
   }
 
+  // Oda kurulurken ya da bir odadayken diğer düğmeler kilitlenir; çıkış için "Odayı kapat / Vazgeç" görünür
   function kilitle(evet = true) {
     ['odaKurBtn', 'katilBtn', 'odaKoduGir', 'botlaBtn', 'adim', 'geriDonBtn'].forEach(id => $(id) && ($(id).disabled = evet));
+    $('odaIptalBtn').hidden = !evet;
+    $('odaIptalBtn').textContent = ag.mod === 'ev' || $('odaKurBtn').dataset.kuruluyor ? '❌ Odayı kapat' : '↩️ Vazgeç, odadan çık';
   }
 
   function odaKodunuGoster() {
     $('odaBilgisi').innerHTML = `🔑 <b>${ag.kod}</b>`;
     $('odaBilgisi').hidden = false;
     $('sohbetBtn').hidden = false;
+    $('sesliBtn').hidden = false;
   }
 
   function sunucuyaYenidenBaglan(peer) {
@@ -148,6 +154,8 @@ const Ag = (() => {
     Ses.motor();
     const kod = [...Array(KOD_UZUNLUK)].map(() => KOD_HARFLERI[Math.floor(Math.random() * KOD_HARFLERI.length)]).join('');
     durumYaz('⏳ Oda açılıyor...');
+    oturumuUnut();  // eski bir odaya otomatik girme kaydı kalmasın
+    $('odaKurBtn').dataset.kuruluyor = '1';
     kilitle();
     try {
       ag.peer?.destroy();
@@ -160,11 +168,13 @@ const Ag = (() => {
       ag.kod = kod;
       ag.koltuklar = [{ ad, kimlik, misafir: null }, null, null, null];
       ui.benimNo = 0;
+      kilitle();
       odaKodunuGoster();
       nabziBaslat();
       lobiyiCiz();
     });
     sunucuyaYenidenBaglan(peer);
+    peer.on('call', gelenArama);
     peer.on('connection', baglanti => {
       const misafir = { baglanti, sonMesaj: Date.now(), no: null };
       ag.bekleyen.push(misafir);
@@ -223,6 +233,9 @@ const Ag = (() => {
       else if (m.ad === 'hepsiniIsle') gonder(misafir, { tip: 'sonuc', eylem: m.ad, r });
     } else if (m?.tip === 'sohbet' && typeof m.metin === 'string') {
       sohbetDagit(no, koltukAdi(no), m.metin);
+    } else if (m?.tip === 'ses') {
+      ag.koltuklar[no].ses = !!m.acik;
+      sesListesiYay();
     }
   }
 
@@ -251,10 +264,12 @@ const Ag = (() => {
     const eski = ag.koltuklar[no].misafir;
     if (eski && eski !== misafir) eski.baglanti.close();
     ag.koltuklar[no].misafir = misafir;
+    ag.koltuklar[no].ses = false;  // yeniden gelen önce sesten çıkmış sayılır (yeni bağlantı adresi)
     misafir.no = no;
     ag.bekleyen = ag.bekleyen.filter(x => x !== misafir);
     gonder(misafir, { tip: 'kabul', no, surum: SURUM });
     Ses.secim();
+    sesListesiYay();
     if (!ag.basladi) {
       lobiyiCiz();
       return;
@@ -269,6 +284,8 @@ const Ag = (() => {
     const k = ag.koltuklar[no];
     if (!k?.misafir) return;
     k.misafir = null;
+    k.ses = false;
+    sesListesiYay();
     if (!ag.basladi) {
       ag.koltuklar[no] = null;
       lobiyiCiz();
@@ -324,6 +341,7 @@ const Ag = (() => {
     } catch (e) { /* eski bağlantı zaten kapanmış */ }
     const peer = new Peer();
     ag.peer = peer;
+    peer.on('call', gelenArama);
     sunucuyaYenidenBaglan(peer);
     // 15 saniyede bağlanılamazsa ne yapılacağını söylesin
     setTimeout(() => {
@@ -332,6 +350,7 @@ const Ag = (() => {
         + '• Oda sahibi oyunu <b>açık</b> tutsun, ekranı kilitlenmesin (kodu göndermek için WhatsApp’a geçtiyse oyuna geri dönsün).<br>'
         + '• İkiniz de aynı Wi-Fi’ye bağlanın ya da ikiniz de mobil veriye geçin.<br>'
         + '• Sonra tekrar <b>Katıl</b>’a bas.');
+      oturumuUnut();  // yenileyince bu odaya kendiliğinden girmeye çalışıp takılmasın
       kilitle(false);
     }, 15000);
     peer.on('open', () => {
@@ -353,6 +372,12 @@ const Ag = (() => {
     peer.on('error', e => {
       if (ag.peer !== peer || ag.baglanti) return;
       kilitle(false);
+      // Oda yok: sayfa yenilenince bu odaya tekrar otomatik girmeye çalışmasın
+      if (e.type === 'peer-unavailable') {
+        oturumuUnut();
+        kayit(SON_ODA, null);
+        $('geriDonBtn').hidden = true;
+      }
       durumYaz(e.type === 'peer-unavailable'
         ? '❌ Bu kodla açık bir oda bulunamadı. Kodu kontrol et. Oda sahibinin oyunu açık mı? (Kodu göndermek için oyundan çıktıysa telefon oyunu uyutur: oyuna geri dönsün, sonra tekrar Katıl’a bas.)'
         : `❌ Bağlanılamadı (${e.type}). İnternet bağlantını kontrol et.`);
@@ -410,6 +435,8 @@ const Ag = (() => {
       mesaj(`${m.r.sayi} taş işlendi. Yanlışsa “Geri al”.`, 'iyi');
     } else if (m?.tip === 'sohbet') {
       sohbetGeldi(m.no, m.ad, m.metin);
+    } else if (m?.tip === 'sesListesi' && Array.isArray(m.liste)) {
+      sesListesiGeldi(m.liste);
     }
   }
 
@@ -435,7 +462,10 @@ const Ag = (() => {
 
   function ayril() {
     oturumuUnut();
-    if (ag.mod === 'misafir') kayit(SON_ODA, null);
+    kayit(SON_ODA, null);
+    try {
+      ag.peer?.destroy();  // odayı kapat: arkadaşların bağlantısı da kapanır
+    } catch (e) { /* zaten kapanmış */ }
     location.reload();
   }
 
@@ -479,6 +509,113 @@ const Ag = (() => {
     Ses.secim();
   }
 
+  // ---------- Sesli sohbet ----------
+  // 🎤'a basan sesli sohbete katılır (mikrofon açılır). Sesteki her iki kişi arasında doğrudan bir ses
+  // bağlantısı kurulur; ikiliden koltuk numarası küçük olan arar, diğeri kendi sesiyle cevap verir.
+  // Kimin seste olduğunu oda sahibi tutar ve herkese duyurur.
+  const ses = { akis: null, liste: [], aramalar: new Map() };  // aramalar: peerId → { call, audio }
+
+  function sesListesiYay() {
+    if (ag.mod !== 'ev') return;
+    const liste = ag.koltuklar.map((k, no) => {
+      const peerId = no === 0 ? ag.peer?.id : k?.misafir?.baglanti.peer;
+      return k?.ses && peerId ? { no, peerId } : null;
+    }).filter(Boolean);
+    misafirler().forEach(({ k }) => gonder(k.misafir, { tip: 'sesListesi', liste }));
+    sesListesiGeldi(liste);
+  }
+
+  function sesListesiGeldi(liste) {
+    ses.liste = liste;
+    const benSesteyim = !!ses.akis && liste.some(x => x.no === ui.benimNo);
+    // Sesten çıkanlarla (ya da ben çıktıysam herkesle) bağlantıyı kapat
+    ses.aramalar.forEach((a, peerId) => {
+      if (!benSesteyim || !liste.some(x => x.peerId === peerId)) aramayiKapat(peerId);
+    });
+    if (benSesteyim) {
+      liste.filter(x => x.no > ui.benimNo && !ses.aramalar.has(x.peerId))
+        .forEach(x => aramayaBagla(ag.peer.call(x.peerId, ses.akis)));
+    }
+    sesDugmesiniCiz();
+    if (Masa.oyun) ciz();
+  }
+
+  function gelenArama(call) {
+    if (!ses.akis) {
+      call.close();
+      return;
+    }
+    call.answer(ses.akis);
+    aramayaBagla(call);
+  }
+
+  function aramayaBagla(call) {
+    if (!call) return;
+    aramayiKapat(call.peer);
+    const audio = new Audio();
+    audio.autoplay = true;
+    audio.setAttribute('playsinline', '');
+    ses.aramalar.set(call.peer, { call, audio });
+    call.on('stream', akis => {
+      audio.srcObject = akis;
+      audio.play().catch(() => {});
+    });
+    const bitti = () => {
+      if (ses.aramalar.get(call.peer)?.call === call) aramayiKapat(call.peer);
+    };
+    call.on('close', bitti);
+    call.on('error', bitti);
+  }
+
+  function aramayiKapat(peerId) {
+    const a = ses.aramalar.get(peerId);
+    if (!a) return;
+    ses.aramalar.delete(peerId);
+    a.audio.srcObject = null;
+    try {
+      a.call.close();
+    } catch (e) { /* zaten kapanmış */ }
+  }
+
+  async function sesAcKapa() {
+    if (ses.akis) {
+      ses.akis.getTracks().forEach(t => t.stop());
+      ses.akis = null;
+      sesDurumuBildir(false);
+      mesaj('🎤 Sesli sohbetten çıktın.');
+      return;
+    }
+    try {
+      ses.akis = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    } catch (e) {
+      Ses.hata();
+      mesaj('🎤 Mikrofona izin verilmedi. Telefon ayarlarından tarayıcıya mikrofon izni ver.', 'hata');
+      return;
+    }
+    sesDurumuBildir(true);
+    mesaj('🎙️ Sesli sohbettesin. Seste olanlar birbirini duyar.', 'iyi');
+  }
+
+  function sesDurumuBildir(acik) {
+    if (ag.mod === 'ev') {
+      ag.koltuklar[0].ses = acik;
+      sesListesiYay();
+    } else if (ag.mod === 'misafir' && ag.baglanti?.open) {
+      ag.baglanti.send({ tip: 'ses', acik });
+      if (!acik) sesListesiGeldi(ses.liste);  // kendi bağlantılarımı hemen kapat
+    }
+    sesDugmesiniCiz();
+  }
+
+  function sesDugmesiniCiz() {
+    const acik = !!ses.akis;
+    $('sesliBtn').classList.toggle('acik', acik);
+    $('sesliBtn').textContent = acik ? '🎙️' : '🎤';
+    $('sesliBtn').title = acik ? 'Sesli sohbetten çık' : 'Sesli sohbete katıl';
+  }
+
+  const sesteMi = no => ses.liste.some(x => x.no === no);
+
   function sohbetiAc() {
     $('sohbetPaneli').hidden = false;
     ag.okunmamis = 0;
@@ -493,9 +630,11 @@ const Ag = (() => {
     if (e.key === 'Enter') odayaKatil();
   });
   $('baslatBtn').addEventListener('click', oyunuBaslat);
+  $('odaIptalBtn').addEventListener('click', ayril);
   $('yenidenBaglanBtn').addEventListener('click', () => location.reload());
   $('baglantiCikBtn').addEventListener('click', ayril);
   $('sohbetBtn').addEventListener('click', sohbetiAc);
+  $('sesliBtn').addEventListener('click', sesAcKapa);
   $('sohbetKapat').addEventListener('click', () => ($('sohbetPaneli').hidden = true));
   $('sohbetForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -528,7 +667,9 @@ const Ag = (() => {
   } catch (e) { /* buton görünmez */ }
 
   return {
-    eylem, durumYay, olayYay, ayril,
+    eylem, durumYay, olayYay, ayril, sesteMi,
+    // Sorun ararken: kimlerle ses bağlantısı var, ses geliyor mu
+    get sesBaglantilari() { return [...ses.aramalar].map(([id, a]) => ({ id, sesGeliyor: !!a.audio.srcObject })); },
     get mod() { return ag.mod; },
   };
 })();

@@ -226,3 +226,10 @@ details li { margin: 4px 0; }
 #sohbetForm { display: flex; gap: 6px; margin-bottom: 8px; }
 #sohbetForm input { flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid #5d4a22; background: #0e1a14; color: inherit; }
 #sohbetKapat { width: 100%; }
+
+/* Sesli sohbet */
+#sesliBtn.acik { background: #1f9d48 !important; box-shadow: 0 0 0 2px #7dff9b66, 0 0 12px #1f9d48; }
+.koltuk .mik {
+  position: absolute; right: -6px; bottom: -5px; font-size: 11px; background: #1f9d48; border-radius: 50%;
+  width: 16px; height: 16px; display: grid; place-items: center; box-shadow: 0 0 0 2px #140f0b;
+}
