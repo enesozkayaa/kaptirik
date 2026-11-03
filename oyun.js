@@ -626,13 +626,16 @@ function olay(tip, v) {
     $('sureCubugu').classList.toggle('az', v.kalan <= 10);
     sayaciGoster(v.kalan, v.toplam || Motor.TUR_SURESI);
     if (v.no === ui.benimNo) {
-      // Süre azalınca ses: son 10 saniyede saniyede bir, son 5 saniyede yarım saniyede bir (hızlanır)
-      if (v.kalan <= 10 && v.kalan > 0) Ses.sayac();
-      if (v.kalan <= 5 && v.kalan > 0) {
-        setTimeout(() => {
-          const o2 = Motor.oyun;
-          if (o2.asama === 'oyun' && o2.sira === ui.benimNo && o2.tur.kalan === v.kalan) Ses.sayac();
-        }, 500);
+      // Süre azalınca ses hızlanır: son 10 saniyede saniyede bir, son 6 saniyede yarım saniyede bir,
+      // son 3 saniyede çeyrek saniyede bir
+      if (v.kalan <= 10 && v.kalan > 0) {
+        const kac = v.kalan <= 3 ? 4 : v.kalan <= 6 ? 2 : 1;
+        for (let k = 0; k < kac; k++) {
+          setTimeout(() => {
+            const o2 = Motor.oyun;
+            if (o2.asama === 'oyun' && o2.sira === ui.benimNo && o2.tur.kalan === v.kalan) Ses.sayac();
+          }, (k * 1000) / kac);
+        }
       }
     }
   } else if (tip === 'sureBitti' && v.no === ui.benimNo) {
