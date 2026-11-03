@@ -69,10 +69,6 @@ details li { margin: 4px 0; }
 .koltuk .bilgi b { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
 .koltuk .puan { font-size: 12px; font-weight: 700; color: #f6d58a; }
 .koltuk .puan.eksi { color: #7dff9b; }
-.koltuk .acti {
-  position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); font-size: 7.5px; font-weight: 900;
-  background: #f6d58a; color: #1b1206; border-radius: 4px; padding: 0 3px; text-shadow: none; letter-spacing: .3px;
-}
 .koltuk.sirada { box-shadow: 0 0 0 2px var(--renk), 0 0 18px var(--renk); }
 .koltuk.sirada .avatar { animation: nabiz 1.2s infinite; }
 /* Rakip kartları masada, ıstakalarının yanında (konumu oyun.js hesaplar) */
