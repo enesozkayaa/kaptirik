@@ -237,7 +237,7 @@ function tasHtml(t, { islek = false, mini = false } = {}) {
   const ic = t.sahte
     ? '<span class="yildiz">★</span>'
     : `<span class="sayi" style="color:${RENK_KODLARI[t.renk]}">${t.sayi}</span><span class="nokta" style="background:${RENK_KODLARI[t.renk]}"></span>`;
-  return `<div class="tas${okey ? ' okey' : ''}${mini ? ' mini' : ''}" data-id="${t.id}">${ic}${islek ? '<span class="islek">işlek</span>' : ''}</div>`;
+  return `<div class="tas${okey ? ' okey' : ''}${mini ? ' mini' : ''}${islek ? ' islek' : ''}" data-id="${t.id}">${ic}</div>`;
 }
 
 // ---------- Çizim ----------
@@ -263,7 +263,6 @@ function ciz() {
 
   // Üst bilgi
   $('elBilgi').textContent = `El ${o.elNo}/${o.ayar.elSayisi}`;
-  $('gostergeKutu').innerHTML = `<small>Gösterge</small>${tasHtml(o.gosterge, { mini: true })}<small>Okey</small>${tasHtml({ id: -1, ...o.okey, sahte: false }, { mini: true })}`;
   $('esik').innerHTML = `Açmak için: <b>${Motor.gereken()}+</b>${Motor.kimseAcmadi() ? '' : ' · çift: ' + (Motor.gereken() + (Motor.gereken() % 2)) + '+'}`;
 
   // Oyuncu kutuları (rakipler üstte: sol, karşı, sağ; ben altta)
@@ -589,7 +588,7 @@ function olay(tip, v) {
     if (v.puan > 0) Ses.ceza();
     mesaj(`${v.puan > 0 ? 'Ceza +' : 'Düşer '}${v.puan} · ${guvenli(v.neden)}`, v.puan > 0 ? 'ceza' : 'iyi');
   } else if (tip === 'sure') {
-    const yuzde = Math.max(0, v.kalan / Motor.TUR_SURESI);
+    const yuzde = Math.max(0, v.kalan / (v.toplam || Motor.TUR_SURESI));
     $('sureCubugu').style.width = `${yuzde * 100}%`;
     $('sureCubugu').classList.toggle('az', v.kalan <= 10);
     const sn = $(`koltuk${koltukNo(v.no)}`).querySelector('.sn');

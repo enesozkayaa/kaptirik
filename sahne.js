@@ -277,7 +277,7 @@ const Sahne = (() => {
     g.koltuklar.forEach((k, koltuk) => {
       if (koltuk === 0) return;
       const yer = KOLTUK[koltuk];
-      const n = Math.min(k.tasSayisi, 16);
+      const n = 14;  // rakibin kaç taşı kaldığı belli olmasın: hep aynı sayıda taş görünür
       for (let i = 0; i < n; i++) {
         const t = dikTas();
         const u = (i - (n - 1) / 2) * 0.32;
@@ -310,7 +310,7 @@ const Sahne = (() => {
     dinamik.add(deste);
     if (g.gosterge) {
       const gost = yatanTas(g.gosterge, false, BUYUK);
-      gost.position.set(0.42, 0, 0);
+      gost.position.set(DESTE.x + TAS_G * BUYUK + 0.04, 0, 0);  // destenin hemen yanında
       gost.rotation.y = 0.15;
       dinamik.add(gost);
     }

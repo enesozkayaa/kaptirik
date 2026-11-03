@@ -17,6 +17,7 @@
 const Motor = (() => {
   const K = Kurallar;
   const TUR_SURESI = 30;     // saniye
+  const ACMA_SURESI = 60;    // elini açınca düşünmek için verilen süre (saniye)
   const BOT_HIZ = 900;       // botun her hamlesi arasında bekleme (ms)
 
   let o = null;
@@ -75,7 +76,7 @@ const Motor = (() => {
   function siraBasla(no, ilk = false) {
     o.sira = no;
     const p = o.oyuncular[no];
-    o.tur = { cekti: ilk, yandan: null, acikBasta: p.acti, kalan: TUR_SURESI, sureSifirlandi: false, geriAl: [] };
+    o.tur = { cekti: ilk, yandan: null, acikBasta: p.acti, kalan: TUR_SURESI, toplam: TUR_SURESI, sureSifirlandi: false, geriAl: [] };
     zamanlayiciBaslat();
     degisti();
     olay('sira', { no });
@@ -89,7 +90,7 @@ const Motor = (() => {
     sayac = setInterval(() => {
       if (o.asama !== 'oyun' || o.sira !== no) return clearInterval(sayac);
       o.tur.kalan--;
-      olay('sure', { kalan: o.tur.kalan, no });
+      olay('sure', { kalan: o.tur.kalan, toplam: o.tur.toplam, no });
       if (o.tur.kalan <= 0) {
         clearInterval(sayac);
         if (!o.oyuncular[no].bot) sureBitti(no);
@@ -230,8 +231,8 @@ const Motor = (() => {
     // İlk açışta düşünmek için süre baştan başlar (geri alıp tekrar açınca bir daha başlamaz)
     if (!o.tur.sureSifirlandi) {
       o.tur.sureSifirlandi = true;
-      o.tur.kalan = TUR_SURESI;
-      olay('sure', { kalan: o.tur.kalan, no });
+      o.tur.kalan = o.tur.toplam = ACMA_SURESI;
+      olay('sure', { kalan: o.tur.kalan, toplam: o.tur.toplam, no });
     }
     degisti();
     return tamam({ deger: sonuc.deger });
