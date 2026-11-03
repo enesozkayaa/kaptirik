@@ -170,6 +170,24 @@ function istakaKumeleri() {
   return kumeler;
 }
 
+// Yan yana dizili taşları geçerli gruplara böl. Tek grup olamıyorsa (örneğin 6'lı per diye bir şey yok)
+// ardışık parçalara ayrılır: 7-7-7-7-7-7 → 7-7-7 + 7-7-7. Birden çok bölünüş varsa toplamı en yüksek olan seçilir.
+function kumeyiBol(ts) {
+  const o = Motor.oyun;
+  const tek = K.grupCoz(ts, o.okey);
+  let enIyi = tek ? [tek] : null;
+  for (let k = 3; k <= ts.length - 3; k++) {
+    const sol = K.grupCoz(ts.slice(0, k), o.okey);
+    if (!sol) continue;
+    const sag = kumeyiBol(ts.slice(k));
+    if (!sag) continue;
+    const aday = [sol, ...sag];
+    const toplam = l => l.reduce((a, g) => a + g.deger, 0);
+    if (!enIyi || toplam(aday) > toplam(enIyi)) enIyi = aday;
+  }
+  return enIyi;
+}
+
 // Istakada dizdiğin geçerli gruplar: seri için per/seri, çift için yan yana ikililer
 function diziliGruplar(tur) {
   const o = Motor.oyun;
@@ -183,8 +201,8 @@ function diziliGruplar(tur) {
       for (let k = 0; k < ts.length; k += 2) ciftler.push(K.ciftCoz([ts[k], ts[k + 1]], o.okey));
       if (ciftler.every(Boolean)) gruplar.push(...ciftler);
     } else {
-      const g = K.grupCoz(ts, o.okey);
-      if (g) gruplar.push(g);
+      const parcalar = kumeyiBol(ts);
+      if (parcalar) gruplar.push(...parcalar);
     }
   });
   return { gruplar, deger: gruplar.reduce((a, g) => a + g.deger, 0) };
@@ -196,7 +214,8 @@ function tutulanGrup(id) {
   const kume = istakaKumeleri().find(k => k.includes(id));
   if (!kume || kume.length < 2 || kume.at(-1) !== id) return [id];
   const ts = kume.map(tasBul);
-  if (K.grupCoz(ts, o.okey)) return kume;
+  const parcalar = ts.every(Boolean) && kumeyiBol(ts);
+  if (parcalar) return parcalar.at(-1).sirali.map(t => t.id).sort((a, b) => kume.indexOf(a) - kume.indexOf(b));
   if (kume.length % 2 === 0 && K.ciftCoz(ts.slice(-2), o.okey)) return kume.slice(-2);
   return [id];
 }
