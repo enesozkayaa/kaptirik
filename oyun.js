@@ -18,6 +18,10 @@ const ISTAKA_YUVA = 30;   // 2 sıra x 15 yuva
 const AD_ANAHTARI = 'kaptirik.ad';
 const guvenli = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 
+// Oyunu kim yönetiyor: kendi telefonunda (botlarla ya da odayı açan sensen) motorun kendisi,
+// başkasının odasına katıldıysan oda sahibinden gelen durumu tutan uzak masa (ag.js'teki Uzak).
+let Masa = Motor;
+
 const ui = {
   benimNo: 0,
   yuvalar: Array(ISTAKA_YUVA).fill(null),  // ıstakamdaki taş id'leri (boş yuva = null)
@@ -63,6 +67,7 @@ function menuKur() {
     };
   });
   $('yardimli').onchange = () => (ui.ayar.yardimli = $('yardimli').checked);
+  $('adim').addEventListener('input', () => $('adim').classList.remove('eksik'));
   $('botlaBtn').onclick = () => {
     const ad = $('adim').value.trim().slice(0, 12);
     if (!ad) {
@@ -80,6 +85,7 @@ function menuKur() {
     ui.yuvalar = Array(ISTAKA_YUVA).fill(null);
     $('menu').hidden = true;
     $('oyun').hidden = false;
+    Masa = Motor;
     Motor.yeniOyun([ad, ...BOT_ADLARI], { elSayisi: ui.ayar.elSayisi, yardimli: ui.ayar.yardimli });
   };
 }
@@ -173,7 +179,7 @@ function istakaKumeleri() {
 // Yan yana dizili taşları geçerli gruplara böl. Tek grup olamıyorsa (örneğin 6'lı per diye bir şey yok)
 // ardışık parçalara ayrılır: 7-7-7-7-7-7 → 7-7-7 + 7-7-7. Birden çok bölünüş varsa toplamı en yüksek olan seçilir.
 function kumeyiBol(ts) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const tek = K.grupCoz(ts, o.okey);
   let enIyi = tek ? [tek] : null;
   for (let k = 3; k <= ts.length - 3; k++) {
@@ -190,7 +196,7 @@ function kumeyiBol(ts) {
 
 // Istakada dizdiğin geçerli gruplar: seri için per/seri, çift için yan yana ikililer
 function diziliGruplar(tur) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const gruplar = [];
   istakaKumeleri().forEach(kume => {
     const ts = kume.map(tasBul);
@@ -210,7 +216,7 @@ function diziliGruplar(tur) {
 
 // Tutulan taş, dizili bir grubun en sağındaysa bütün grubu ver (çiftte en sağdaki iki taş)
 function tutulanGrup(id) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const kume = istakaKumeleri().find(k => k.includes(id));
   if (!kume || kume.length < 2 || kume.at(-1) !== id) return [id];
   const ts = kume.map(tasBul);
@@ -242,15 +248,20 @@ function istakayaDiz(gruplar, kalan) {
   ciz();
 }
 
-const benim = () => Motor.oyun.oyuncular[ui.benimNo];
-const siraBende = () => Motor.oyun.asama === 'oyun' && Motor.oyun.sira === ui.benimNo;
+const benim = () => Masa.oyun.oyuncular[ui.benimNo];
+const siraBende = () => Masa.oyun.asama === 'oyun' && Masa.oyun.sira === ui.benimNo;
 const tasBul = id => benim().el.find(t => t.id === id);
+// Soldan alınan taş hâlâ elimde mi? (online'da taşlar kopya olduğu için id ile bakılır)
+const yandanElde = () => {
+  const y = Masa.oyun.tur?.yandan;
+  return !!y && benim().el.some(t => t.id === y.id);
+};
 // El sürerken bu elin puanı da toplama eklenmiş gösterilir (el bitince motor zaten ekliyor)
-const anlikPuan = p => p.toplam + (Motor.oyun.asama === 'oyun' ? p.elPuani : 0);
+const anlikPuan = p => p.toplam + (Masa.oyun.asama === 'oyun' ? p.elPuani : 0);
 
 // HTML taş
 function tasHtml(t, { islek = false, mini = false } = {}) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const okey = K.jokerMi(t, o.okey);
   if (t.ters && okey) return `<div class="tas ters${mini ? ' mini' : ''}" data-id="${t.id}"></div>`;
   const ic = t.sahte
@@ -261,7 +272,7 @@ function tasHtml(t, { islek = false, mini = false } = {}) {
 
 // ---------- Çizim ----------
 function ciz() {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   if (!o) return;
   const ben = benim();
   istakayiEsitle(ben.el);
@@ -273,7 +284,7 @@ function ciz() {
     return { ad: p.ad, renk: KOLTUK_RENKLERI[no], tasSayisi: p.el.length, atilanlar: p.atilanlar };
   });
   const tutulan = ui.surukle?.basladi && tasBul(ui.surukle.id);
-  const isaretli = new Set(tutulan && ben.acti && siraBende() && ui.ayar.yardimli && o.tur.cekti
+  const isaretli = new Set(tutulan && ben.acti && siraBende() && o.ayar.yardimli && o.tur.cekti
     ? o.masa.filter(g => K.isleme(g, tutulan, o.okey)).map(g => g.id) : []);
   Sahne.ciz({
     koltuklar, gosterge: o.gosterge, desteSayisi: o.deste.length, masa: o.masa, benimNo: ui.benimNo, isaretli, koltukNo,
@@ -282,7 +293,7 @@ function ciz() {
 
   // Üst bilgi
   $('elBilgi').textContent = `El ${o.elNo}/${o.ayar.elSayisi}`;
-  $('esik').innerHTML = `Açmak için: <b>${Motor.gereken()}+</b>${Motor.kimseAcmadi() ? '' : ' · çift: ' + (Motor.gereken() + (Motor.gereken() % 2)) + '+'}`;
+  $('esik').innerHTML = `Açmak için: <b>${Masa.gereken()}+</b>${Masa.kimseAcmadi() ? '' : ' · çift: ' + (Masa.gereken() + (Masa.gereken() % 2)) + '+'}`;
 
   // Oyuncu kartları (rakipler ıstakalarının yanında, ben altta)
   [0, 1, 2, 3].forEach(k => {
@@ -306,12 +317,12 @@ function ciz() {
   if (ui.surukle) return;
 
   // Istakam
-  const islekler = ui.ayar.yardimli ? new Set(ben.el.filter(t => K.islekMi(t, o.masa, o.okey)).map(t => t.id)) : new Set();
+  const islekler = o.ayar.yardimli ? new Set(ben.el.filter(t => K.islekMi(t, o.masa, o.okey)).map(t => t.id)) : new Set();
   $('istaka').innerHTML = ui.yuvalar.slice(0, ISTAKA_YUVA).map((id, i) => {
     const t = id !== null && tasBul(id);
     return `<div class="yuva" data-yuva="${i}">${t ? tasHtml(t, { islek: islekler.has(t.id) }) : ''}</div>`;
   }).join('');
-  if (o.tur?.yandan && ben.el.includes(o.tur.yandan)) tasEl(o.tur.yandan.id)?.classList.add('yandan');
+  if (yandanElde()) tasEl(o.tur.yandan.id)?.classList.add('yandan');
   if (ui.ucacak) {
     const { id, nereden } = ui.ucacak;
     ui.ucacak = null;
@@ -323,7 +334,7 @@ function ciz() {
 
 // Sağdaki yuvarlak sayaç: sıra bendeyken kalan süre
 function sayaciGoster(kalan, toplam) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const s = $('sayac');
   s.hidden = o.asama !== 'oyun' || o.sira !== ui.benimNo;  // sadece sıra bendeyken
   s.querySelector('b').textContent = Math.max(0, kalan);
@@ -345,12 +356,13 @@ function kartlariYerlestir() {
     kart.style.top = `${Math.min(Math.max(p.y, ustAlt + h), innerHeight - h)}px`;
   });
 }
-window.addEventListener('resize', () => Motor.oyun && kartlariYerlestir());
+// Kamera kendi resize dinleyicisinde güncellenir; kartlar ondan sonra (bir sonraki karede) yerleşsin
+window.addEventListener('resize', () => setTimeout(() => Masa.oyun && kartlariYerlestir(), 30));
 
 const tasEl = id => document.querySelector(`#istaka .tas[data-id="${id}"]`);
 
 function dugmeleriCiz() {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const ben = benim();
   const g = K.enIyiGruplar(ben.el, o.okey);
   const c = K.enIyiCiftler(ben.el, o.okey);
@@ -371,8 +383,8 @@ function dugmeleriCiz() {
     if (ben.acti && o.ayar.yardimli && ben.el.some(t => !K.jokerMi(t, o.okey) && K.islekMi(t, o.masa, o.okey))) {
       d.push('<button data-e="hepsiniIsle">⚡ Hepsini işle</button>');
     }
-    if (Motor.geriAlinabilir()) d.push('<button data-e="geriAl" class="uyariBtn">↶ Geri al</button>');
-    if (o.tur.yandan && ben.el.includes(o.tur.yandan)) d.push('<button data-e="geri" class="uyariBtn">↩️ Geri bırak</button>');
+    if (Masa.geriAlinabilir()) d.push('<button data-e="geriAl" class="uyariBtn">↶ Geri al</button>');
+    if (yandanElde()) d.push('<button data-e="geri" class="uyariBtn">↩️ Geri bırak</button>');
   }
   $('eylemler').innerHTML = d.join('');
 }
@@ -419,32 +431,32 @@ function sonuc(r) {
 
 // ---------- Düğmeler ----------
 function eylem(e) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const ben = benim();
   if (e === 'seriDiz') {
     const g = K.enIyiGruplar(ben.el, o.okey);
     istakayaDiz(g.gruplar.map(x => x.sirali), g.kalan.sort((a, b) => a.renk - b.renk || a.sayi - b.sayi));
-    mesaj(`Seri toplamın: <b>${g.deger}</b>${ben.acti ? '' : ` · açmak için ${Motor.gereken()} lazım`}`);
+    mesaj(`Seri toplamın: <b>${g.deger}</b>${ben.acti ? '' : ` · açmak için ${Masa.gereken()} lazım`}`);
   } else if (e === 'ciftDiz') {
     const c = K.enIyiCiftler(ben.el, o.okey);
     istakayaDiz(c.ciftler.map(x => x.sirali), c.kalan.sort((a, b) => a.renk - b.renk || a.sayi - b.sayi));
     mesaj(`${c.ciftler.length} çift · toplam <b>${c.deger}</b>`);
   } else if (e === 'geri') {
-    if (sonuc(Motor.geriBirak(ui.benimNo))) mesaj('Taşı geri bıraktın. Şimdi ortadaki desteye dokunup taş çek.');
+    if (sonuc(Masa.geriBirak(ui.benimNo))) mesaj('Taşı geri bıraktın. Şimdi ortadaki desteye dokunup taş çek.');
   }
   else if (e === 'hepsiniIsle') {
-    const r = hamle(() => Motor.hepsiniIsle(ui.benimNo));
-    if (sonuc(r)) mesaj(`${r.sayi} taş işlendi. Yanlışsa “Geri al”.`, 'iyi');
+    const r = hamle(() => Masa.hepsiniIsle(ui.benimNo));
+    if (sonuc(r) && r.sayi) mesaj(`${r.sayi} taş işlendi. Yanlışsa “Geri al”.`, 'iyi');
   } else if (e === 'geriAl') {
     const once = ui.yuvaYigini.pop();
     if (once) ui.yuvalar = once;
-    sonuc(Motor.geriAl(ui.benimNo));
+    sonuc(Masa.geriAl(ui.benimNo));
   }
   else if (e === 'acSeri' || e === 'acCift') {
     const tur = e === 'acSeri' ? 'seri' : 'cift';
-    const r = hamle(() => Motor.ac(ui.benimNo, tur, diziliGruplar(tur).gruplar.map(g => g.sirali.map(t => t.id))));
+    const r = hamle(() => Masa.ac(ui.benimNo, tur, diziliGruplar(tur).gruplar.map(g => g.sirali.map(t => t.id))));
     const enIyi = K.enIyiGruplar(ben.el, o.okey).deger;
-    if (!r.ok && !ben.acti && tur === 'seri' && enIyi >= Motor.gereken()) {
+    if (!r.ok && !ben.acti && tur === 'seri' && enIyi >= Masa.gereken()) {
       Ses.hata();
       mesaj(`${r.hata}<br><small>İpucu: “Seri diz”e basarsan ${enIyi} oluyor.</small>`, 'hata');
     } else sonuc(r);
@@ -453,23 +465,14 @@ function eylem(e) {
 
 // ---------- Taş çekme ----------
 function ortadanCek() {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   if (!siraBende()) return mesaj('Sıra sende değil.');
   if (o.tur.cekti) return mesaj('Bu tur taşını aldın. Şimdi bir taşı sağ alttaki köşeye sürükleyip at.');
-  const nereden = Sahne.ekranda('deste');
-  const r = Motor.ortadanCek(ui.benimNo);
-  if (sonuc(r) && r.tas) ui.ucacak = { id: r.tas.id, nereden };
-  ciz();
+  sonuc(Masa.ortadanCek(ui.benimNo));  // taş "cekti" olayında ıstakaya uçar
 }
 
 function yandanAl() {
-  const nereden = Sahne.ekranda(3);
-  const r = Motor.yandanAl(ui.benimNo);
-  if (sonuc(r)) {
-    ui.ucacak = { id: r.tas.id, nereden };
-    ciz();
-    mesaj('Soldan aldın: bu taşla elini aç ya da işle. Olmazsa “Geri bırak”.');
-  }
+  if (sonuc(Masa.yandanAl(ui.benimNo))) mesaj('Soldan aldın: bu taşla elini aç ya da işle. Olmazsa “Geri bırak”.');
 }
 
 // ---------- Sürükle-bırak ----------
@@ -488,10 +491,10 @@ function surukleKur() {
     const id = +el.dataset.id;
     ui.surukle = { id, x0: e.clientX, y0: e.clientY, basladi: false, pid: e.pointerId };
     const t = tasBul(id);
-    if (t && K.jokerMi(t, Motor.oyun.okey)) {
+    if (t && K.jokerMi(t, Masa.oyun.okey)) {
       uzun = setTimeout(() => {
         if (!ui.surukle || ui.surukle.basladi) return;
-        t.ters = !t.ters;
+        Masa.tersCevir(ui.benimNo, t.id);
         ui.surukle = null;
         Ses.secim();
         mesaj(t.ters ? 'Okey ters çevrildi 🙈 (yere de ters gider)' : 'Okey açıldı');
@@ -524,7 +527,7 @@ function surukleKur() {
       s.dy = s.y0 - kutu.top;
       document.body.appendChild(s.hayalet);
       s.grup.forEach(id => tasEl(id)?.classList.add('tutuluyor'));
-      s.atabilir = s.grup.length === 1 && siraBende() && Motor.oyun.tur.cekti;
+      s.atabilir = s.grup.length === 1 && siraBende() && Masa.oyun.tur.cekti;
       if (s.atabilir) Sahne.atmaYeri(true);
       Ses.secim();
       ciz();
@@ -565,14 +568,14 @@ const atmaYerindeMi = (x, y) => koseUzakligi(x, y) < 1.6;
 // Sürüklerken halkanın büyümesi ve bırakınca ne olacağı bu tek kurala bağlı (ikisi hep aynı).
 function atmaHalkasiBuyukMu(x, y, id) {
   if (!atmaYerindeMi(x, y)) return false;
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const n = Sahne.noktada(x, y);
   const t = tasBul(id);
   return !(n.tik?.tur === 'grup' && t && K.isleme(o.masa.find(g => g.id === n.tik.id), t, o.okey));
 }
 
 function birak(s, x, y) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const id = s.id;
   const ust = document.elementFromPoint(x, y);
   const yuva = ust?.closest('#istaka .yuva');
@@ -599,15 +602,15 @@ function birak(s, x, y) {
   const at = () => {
     if (!siraBende()) return mesaj('Sıra sende değil.');
     if (!o.tur.cekti) return mesaj('Önce ortadan ya da soldan taş al.');
-    sonuc(Motor.at(ui.benimNo, id));
+    sonuc(Masa.at(ui.benimNo, id));
   };
   const isle = gid => {
     if (!siraBende()) return mesaj('Sıra sende değil.');
-    sonuc(hamle(() => Motor.isle(ui.benimNo, id, gid)));
+    sonuc(hamle(() => Masa.isle(ui.benimNo, id, gid)));
   };
   if (siraBende() && o.tur.cekti && sonTas) {
     // Son taşı ortaya fırlat: el biter
-    sonuc(Motor.at(ui.benimNo, id));
+    sonuc(Masa.at(ui.benimNo, id));
   } else if (atilacak) {
     at();
   } else if (grupId) {
@@ -621,7 +624,7 @@ function birak(s, x, y) {
 
 // ---------- 3D masaya dokunuş: deste, atılan taşlar ----------
 function masaDokunus(h) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   if (!o || o.asama !== 'oyun') return;
   if (h.tur === 'deste') ortadanCek();
   else if (h.tur === 'atilan') {
@@ -634,14 +637,14 @@ function masaDokunus(h) {
 }
 
 function atilanlariGoster(no) {
-  const p = Motor.oyun.oyuncular[no];
+  const p = Masa.oyun.oyuncular[no];
   $('atilanListe').innerHTML = p.atilanlar.length ? p.atilanlar.map(t => tasHtml(t, { mini: true })).join('') : '<p>Henüz taş atmadı.</p>';
   $('atilanEkrani').hidden = false;
 }
 
 // ---------- Motor olayları ----------
 function olay(tip, v) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const ad = no => guvenli(o.oyuncular[no].ad);
   if (tip === 'sira') {
     ui.yuvaYigini = [];
@@ -653,6 +656,8 @@ function olay(tip, v) {
     }
   } else if (tip === 'cekti') {
     Ses.cek();
+    // Benim çektiğim taş desteden (ya da soldan) ıstakama uçar
+    if (v.no === ui.benimNo && v.tas) ui.ucacak = { id: v.tas.id, nereden: Sahne.ekranda(v.yandan ? 3 : 'deste') };
     if (v.no !== ui.benimNo && v.yandan) mesaj(`${ad(v.no)} yandan aldı`);
   } else if (tip === 'atti') {
     Ses.at();
@@ -666,10 +671,10 @@ function olay(tip, v) {
     if (v.puan > 0) Ses.ceza();
     mesaj(`${v.puan > 0 ? 'Ceza +' : 'Düşer '}${v.puan} · ${guvenli(v.neden)}`, v.puan > 0 ? 'ceza' : 'iyi');
   } else if (tip === 'sure') {
-    const yuzde = Math.max(0, v.kalan / (v.toplam || Motor.TUR_SURESI));
+    const yuzde = Math.max(0, v.kalan / (v.toplam || Masa.TUR_SURESI));
     $('sureCubugu').style.width = `${yuzde * 100}%`;
     $('sureCubugu').classList.toggle('az', v.kalan <= 10);
-    sayaciGoster(v.kalan, v.toplam || Motor.TUR_SURESI);
+    sayaciGoster(v.kalan, v.toplam || Masa.TUR_SURESI);
     if (v.no === ui.benimNo) {
       // Süre azalınca ses hızlanır: son 10 saniyede saniyede bir, son 6 saniyede yarım saniyede bir,
       // son 3 saniyede çeyrek saniyede bir
@@ -677,7 +682,7 @@ function olay(tip, v) {
         const kac = v.kalan <= 3 ? 4 : v.kalan <= 6 ? 2 : 1;
         for (let k = 0; k < kac; k++) {
           setTimeout(() => {
-            const o2 = Motor.oyun;
+            const o2 = Masa.oyun;
             if (o2.asama === 'oyun' && o2.sira === ui.benimNo && o2.tur.kalan === v.kalan) Ses.sayac();
           }, (k * 1000) / kac);
         }
@@ -695,7 +700,7 @@ function olay(tip, v) {
 const toplamla = (liste, isaret) => liste.filter(g => Math.sign(g.puan) === isaret).reduce((a, g) => a + g.puan, 0);
 
 function puanTablosuHtml(kayitSec, toplamSec) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const satirlar = o.oyuncular.map((p, i) => ({ p, i, kayit: kayitSec(p), toplam: toplamSec(p) }))
     .sort((a, b) => a.toplam - b.toplam);
   const tablo = '<tr><th></th><th>Ceza</th><th>Düşer</th><th>Toplam</th></tr>'
@@ -715,7 +720,7 @@ function puanTablosuHtml(kayitSec, toplamSec) {
 }
 
 function elSonuGoster(son) {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   const s = o.sonuc;
   const baslik = s.tip === 'deste' ? '🀫 Deste bitti' : `🏁 ${guvenli(o.oyuncular[s.no].ad)} ${guvenli(s.neden)}`;
   const kazanan = [...o.oyuncular].sort((a, b) => a.toplam - b.toplam)[0];
@@ -723,13 +728,14 @@ function elSonuGoster(son) {
   const h = son ? puanTablosuHtml(p => p.gecmis, p => p.toplam) : puanTablosuHtml(p => p.gecmis.filter(g => g.el === o.elNo), p => p.toplam);
   $('elSonuTablo').innerHTML = h.tablo;
   $('elSonuDetay').innerHTML = h.detay;
-  $('sonrakiElBtn').textContent = son ? 'Ana menü' : `Sonraki el (${o.elNo + 1}/${o.ayar.elSayisi})`;
+  $('sonrakiElBtn').textContent = son ? 'Ana menü'
+    : Masa === Motor ? `Sonraki el (${o.elNo + 1}/${o.ayar.elSayisi})` : 'Tamam (yeni eli oda sahibi başlatır)';
   $('elSonu').hidden = false;
   if (son) Ses.kazanma();
 }
 
 function puanTablosu() {
-  const o = Motor.oyun;
+  const o = Masa.oyun;
   $('elSonuBaslik').textContent = `📊 Puanlar (El ${o.elNo}/${o.ayar.elSayisi})`;
   const h = puanTablosuHtml(p => p.gecmis, anlikPuan);
   $('elSonuTablo').innerHTML = h.tablo;
@@ -742,8 +748,15 @@ function puanTablosu() {
 // ---------- Başlangıç ----------
 Sahne.baslat($('sahne'));
 Sahne.tiklayinca(masaDokunus);
-Motor.dinleyici('degisti', () => ciz());
-Motor.dinleyici('olay', olay);
+// Oda sahibiysem her değişiklik ve olay odadakilere de gider
+Motor.dinleyici('degisti', () => {
+  ciz();
+  if (typeof Ag !== 'undefined') Ag.durumYay();
+});
+Motor.dinleyici('olay', (tip, v) => {
+  olay(tip, v);
+  if (typeof Ag !== 'undefined') Ag.olayYay(tip, v);
+});
 surukleKur();
 $('eylemler').addEventListener('click', e => {
   const b = e.target.closest('button[data-e]');
@@ -755,19 +768,25 @@ $('sonrakiElBtn').onclick = () => {
     ui.tabloAcik = false;
     return;
   }
-  if (Motor.oyun.asama === 'bitti') location.reload();
-  else {
+  if (Masa.oyun.asama === 'bitti') (typeof Ag !== 'undefined' ? Ag.ayril() : location.reload());
+  else if (Masa === Motor) {
     Ses.karistir();
     Motor.sonrakiEl();
   }
+  // Odaya katılan oyuncu: yeni eli oda sahibi başlatır, gelince ekran kendiliğinden geçer
 };
 $('puanBtn').onclick = puanTablosu;
 $('atilanKapat').onclick = () => ($('atilanEkrani').hidden = true);
 $('sesBtn').onclick = () => ($('sesBtn').textContent = Ses.acKapa() ? '🔊' : '🔇');
 $('sesBtn').textContent = Ses.acik ? '🔊' : '🔇';
-$('menuBtn').onclick = () => ($('cikisEkrani').hidden = false);
+$('menuBtn').onclick = () => {
+  const mod = typeof Ag !== 'undefined' ? Ag.mod : 'yerel';
+  $('cikisMetni').textContent = mod === 'ev' ? 'Oda kapanır, arkadaşların da oyundan çıkar.'
+    : mod === 'misafir' ? 'Yerine bot oynar. Aynı adla odaya geri girersen kaldığın yerden devam edersin.' : 'Bu oyun biter.';
+  $('cikisEkrani').hidden = false;
+};
 $('cikisHayir').onclick = () => ($('cikisEkrani').hidden = true);
-$('cikisEvet').onclick = () => location.reload();
+$('cikisEvet').onclick = () => (typeof Ag !== 'undefined' ? Ag.ayril() : location.reload());
 // iPhone'da çift dokunuşla ya da iki parmakla yakınlaşma olmasın
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });

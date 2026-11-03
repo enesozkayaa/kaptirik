@@ -35,7 +35,18 @@
       </div>
       <label class="kutucuk"><input type="checkbox" id="yardimli" checked> Yardımlı mod <small>(işlek uyarısı, atılanları görme)</small></label>
       <button id="botlaBtn" class="buyuk">🤖 Botlarla oyna</button>
-      <p class="not">Arkadaşlarla online oda yakında geliyor.</p>
+      <div class="online">
+        <h3>👥 Arkadaşlarla oyna</h3>
+        <button id="odaKurBtn" class="buyuk ikinciBtn">🏠 Oda kur</button>
+        <div class="katilSatiri">
+          <input id="odaKoduGir" maxlength="5" placeholder="Oda kodu" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button id="katilBtn">Katıl</button>
+        </div>
+        <button id="geriDonBtn" class="ikinciBtn" hidden></button>
+        <div id="onlineDurum"></div>
+        <button id="baslatBtn" class="buyuk" hidden>▶️ Oyunu başlat</button>
+        <p class="not">En fazla 4 kişi. Boş koltuklarda bot oynar. Oyundan çıkan olursa yerine bot geçer, aynı adla geri girince devam eder.</p>
+      </div>
       <details>
         <summary>Kurallar kısaca</summary>
         <ul>
@@ -57,6 +68,8 @@
       <button id="menuBtn" title="Ana menü">☰</button>
       <span id="elBilgi"></span>
       <span id="esik"></span>
+      <span id="odaBilgisi" title="Oda kodu" hidden></span>
+      <button id="sohbetBtn" title="Sohbet" hidden>💬<span id="okunmamis" hidden></span></button>
       <button id="puanBtn" title="Puanlar">📊</button>
       <button id="sesBtn" title="Ses">🔊</button>
     </header>
@@ -96,10 +109,30 @@
     </div>
   </section>
 
+  <!-- Oda sohbeti -->
+  <section id="sohbetPaneli" class="perde" hidden>
+    <div class="kart">
+      <h2>💬 Sohbet</h2>
+      <div id="sohbetListe"></div>
+      <div id="hizliMesaj"><button>👍</button><button>😂</button><button>Hadi!</button><button>Kaptırdın 😎</button><button>Eyvah 😱</button></div>
+      <form id="sohbetForm"><input id="sohbetYazi" maxlength="120" placeholder="Mesaj yaz..." autocomplete="off"><button>Gönder</button></form>
+      <button id="sohbetKapat" class="ikinciBtn">Kapat</button>
+    </div>
+  </section>
+
+  <!-- Misafir: oda sahibiyle bağlantı koptu -->
+  <section id="baglantiEkrani" class="perde" hidden>
+    <div class="kart">
+      <h2>📡 Bağlantı koptu</h2>
+      <p>Oda sahibiyle bağlantın kesildi. İnternetin geldiyse yeniden bağlan; bu arada yerine bot oynuyor, kaldığın yerden devam edersin.</p>
+      <div class="ikili"><button id="baglantiCikBtn" class="ikinciBtn">Ana menü</button><button id="yenidenBaglanBtn">Yeniden bağlan</button></div>
+    </div>
+  </section>
+
   <section id="cikisEkrani" class="perde" hidden>
     <div class="kart">
       <h2>Ana menüye dönülsün mü?</h2>
-      <p>Bu oyun biter.</p>
+      <p id="cikisMetni">Bu oyun biter.</p>
       <div class="ikili"><button id="cikisHayir">Hayır</button><button id="cikisEvet" class="tehlike">Evet, çık</button></div>
     </div>
   </section>
@@ -109,7 +142,9 @@
   <script src="motor.js"></script>
   <script src="ses.js"></script>
   <script src="sahne.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="oyun.js"></script>
+  <script src="ag.js"></script>
   <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   </script>

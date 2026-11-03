@@ -343,10 +343,11 @@ const Sahne = (() => {
     // benimkiler bana doğru okunur, karşıdakininkiler bana ters, yandakilerinki yan görünür.
     // Alan her koltuk için aynı tanımlanır ("sahibi aşağıda oturuyormuş gibi") ve koltuğun yönüne döndürülür.
     // Alanlar fırıldak gibi kaydırılmıştır, birbirine binmez.
-    const ALAN = { x0: -2.55, x1: 0.95, z0: 1.05, satir: 0.52 };  // köşelerdeki atılan taşlardan uzak dursun
+    // Her grup ayrı bir satırda, alt alta (işlendikçe uzayan grup yandakine taşmasın).
+    // Satır çoğalırsa aralık daralır; satıra sığmayan uzun grup küçülerek sığar.
+    const ALAN = { x0: -2.55, x1: 0.75, z0: 1.05, zSon: 3.1 };  // köşelerdeki atılan taşlardan uzak dursun
     const DONUS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];  // alt, sağ, üst, sol
     const M = 1.45;  // açılan taşlar büyük olsun, okunsun
-    const AR = TAS_G * M + 0.01;
     const yereDon = (x, z, a) => ({ x: x * Math.cos(a) + z * Math.sin(a), z: -x * Math.sin(a) + z * Math.cos(a) });
     const koltugaGore = [[], [], [], []];
     g.masa.forEach(gr => koltugaGore[g.koltukNo(gr.sahip)].push(gr));
@@ -355,36 +356,34 @@ const Sahne = (() => {
       const kap = new THREE.Group();
       kap.rotation.y = DONUS[koltuk];
       dinamik.add(kap);
-      let x = a.x0, z = a.z0;
-      liste.forEach(gr => {
+      const aralik = liste.length > 1 ? Math.min(0.52, (a.zSon - a.z0) / (liste.length - 1)) : 0.52;
+      liste.forEach((gr, satir) => {
+        const m = Math.min(M, (aralik - 0.03) / TAS_Y, (a.x1 - a.x0) / (gr.sirali.length * (TAS_G + 0.01)));
+        const AR = TAS_G * m + 0.01;
+        const x = a.x0, z = a.z0 + satir * aralik;
         const gen = gr.sirali.length * AR;
-        if (x + gen > a.x1 && x > a.x0) {
-          x = a.x0;
-          z += a.satir;
-        }
         const grup = new THREE.Group();
         gr.sirali.forEach((t, i) => {
-          const m = yatanTas(t, t.ters && g.okeyMi(t), M);
-          m.position.set(i * AR, 0, 0);
-          grup.add(m);
+          const tm = yatanTas(t, t.ters && g.okeyMi(t), m);
+          tm.position.set(i * AR, 0, 0);
+          grup.add(tm);
         });
         if (g.isaretli?.has(gr.id)) {
           const isik = new THREE.Mesh(
-            new THREE.PlaneGeometry(gen + 0.16, TAS_Y * M + 0.16),
+            new THREE.PlaneGeometry(gen + 0.16, TAS_Y * m + 0.16),
             new THREE.MeshBasicMaterial({ color: 0x5dff8a, transparent: true, opacity: 0.8, depthWrite: false }),
           );
           isik.rotation.x = -Math.PI / 2;
-          isik.position.set(gen / 2 - TAS_G * M / 2 - 0.005, 0.002, 0);
+          isik.position.set(gen / 2 - TAS_G * m / 2 - 0.005, 0.002, 0);
           grup.add(isik);
         }
-        grup.position.set(x + TAS_G * M / 2, 0, z);
+        grup.position.set(x + TAS_G * m / 2, 0, z);
         // Masadaki gerçek kapladığı alan (taş bırakırken yakındaki grubu bulmak için)
-        const k1 = yereDon(x, z - TAS_Y * M / 2, DONUS[koltuk]), k2 = yereDon(x + gen, z + TAS_Y * M / 2, DONUS[koltuk]);
+        const k1 = yereDon(x, z - TAS_Y * m / 2, DONUS[koltuk]), k2 = yereDon(x + gen, z + TAS_Y * m / 2, DONUS[koltuk]);
         grupKutulari.push({ id: gr.id, x0: Math.min(k1.x, k2.x), x1: Math.max(k1.x, k2.x), z0: Math.min(k1.z, k2.z), z1: Math.max(k1.z, k2.z) });
         grup.traverse(m => (m.userData.tik = { tur: 'grup', id: gr.id }));
         tiklanabilir.push(grup);
         kap.add(grup);
-        x += gen + 0.12;
       });
     });
   }

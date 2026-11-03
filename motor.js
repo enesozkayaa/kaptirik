@@ -335,6 +335,36 @@ const Motor = (() => {
     return tamam({ sayi });
   }
 
+  // ---------- Online ----------
+  // Oyundan çıkan oyuncunun yerine bot oynar; geri gelince bot bırakır, oyuncu kaldığı yerden devam eder
+  function botYap(no, bot) {
+    const p = o?.oyuncular[no];
+    if (!p || p.bot === bot) return;
+    p.bot = bot;
+    degisti();
+    if (bot && o.asama === 'oyun' && o.sira === no) botOyna(no);
+  }
+
+  // Okeyi ters çevir / aç (yere de öyle gider)
+  function tersCevir(no, tasId) {
+    const t = o?.oyuncular[no]?.el.find(x => x.id === tasId);
+    if (!t || !K.jokerMi(t, o.okey)) return hata('Sadece okey ters çevrilir.');
+    t.ters = !t.ters;
+    degisti();
+    return tamam({ ters: t.ters });
+  }
+
+  // Bir oyuncunun görmesi gereken durum: başkalarının elleri ve destedeki taşlar gizli
+  function gorunum(no) {
+    const g = JSON.parse(JSON.stringify({ ...o, tur: { ...o.tur, geriAl: [] } }));
+    g.tur.geriAlSayi = o.tur?.geriAl?.length ?? 0;
+    g.deste = Array(o.deste.length).fill(0);
+    g.oyuncular.forEach((p, i) => {
+      if (i !== no) p.el = Array(p.el.length).fill(0);
+    });
+    return g;
+  }
+
   // ---------- Geri alma ----------
   // Açma, yere koyma ve işleme taş atılana kadar geri alınabilir. Süre geri alınmaz.
   function kaydet() {
@@ -457,7 +487,8 @@ const Motor = (() => {
   async function botOyna(no) {
     const p = o.oyuncular[no];
     const el = o.elNo;
-    const devam = () => o.asama === 'oyun' && o.sira === no && o.elNo === el;
+    // Oyuncu geri gelirse (bot değilse artık) bot hemen bırakır
+    const devam = () => o.asama === 'oyun' && o.sira === no && o.elNo === el && p.bot;
     await bekle(BOT_HIZ);
     if (!devam()) return;
     if (!o.tur.cekti) {
@@ -508,7 +539,7 @@ const Motor = (() => {
     TUR_SURESI,
     dinleyici(ad, fn) { dinle[ad] = fn; },
     get oyun() { return o; },
-    yeniOyun, sonrakiEl, ortadanCek, yandanAl, geriBirak, ac, isle, hepsiniIsle, at, geriAl, geriAlinabilir, gereken, kimseAcmadi, yandakiTas, enKotuTas,
+    yeniOyun, sonrakiEl, ortadanCek, yandanAl, geriBirak, ac, isle, hepsiniIsle, at, geriAl, geriAlinabilir, botYap, tersCevir, gorunum, gereken, kimseAcmadi, yandakiTas, enKotuTas,
   };
 })();
 

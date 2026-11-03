@@ -176,3 +176,39 @@ details li { margin: 4px 0; }
   #ust { font-size: 12px; gap: 5px; }
   #eylemler button { padding: 6px 8px; font-size: 12.5px; }
 }
+
+/* ---------- Online: menü, bekleme odası, oda kodu, sohbet ---------- */
+.online { margin-top: 16px; padding-top: 12px; border-top: 1px solid #ffffff1f; }
+.online h3 { margin: 0 0 8px; font-size: 16px; text-align: center; }
+.ikinciBtn { background: #2a3a31; color: #f4efe2; box-shadow: 0 2px 0 #111; }
+.katilSatiri { display: flex; gap: 6px; margin-top: 8px; }
+.katilSatiri input {
+  flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid #5d4a22; background: #0e1a14; color: inherit;
+  text-transform: uppercase; letter-spacing: 3px; font-weight: 700; text-align: center;
+}
+#geriDonBtn { width: 100%; margin-top: 8px; }
+#onlineDurum { margin-top: 10px; font-size: 14px; text-align: center; line-height: 1.4; }
+#onlineDurum .odaKodu { font-size: 26px; letter-spacing: 4px; color: #f6d58a; user-select: all; }
+.lobiListesi { text-align: left; margin: 10px auto; padding-left: 24px; max-width: 260px; }
+.lobiListesi li { margin: 4px 0; }
+.lobiListesi .nokta { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.lobiListesi .bos { opacity: .55; }
+#adim.eksik, .katilSatiri input.eksik { border-color: #ff5252; }
+#odaBilgisi { font-size: 12px; background: #0007; border-radius: 8px; padding: 4px 8px; user-select: all; }
+#odaBilgisi b { color: #f6d58a; letter-spacing: 2px; }
+#sohbetBtn { position: relative; }
+#okunmamis {
+  position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; border-radius: 8px; background: #e23b3b;
+  color: #fff; font-size: 10px; line-height: 16px; padding: 0 3px;
+}
+#sohbetListe {
+  height: 40vh; overflow-y: auto; background: #0006; border-radius: 10px; padding: 8px; font-size: 14px;
+  user-select: text; -webkit-user-select: text;
+}
+#sohbetListe .satir { margin: 4px 0; word-wrap: break-word; }
+#sohbetListe .duyuru { opacity: .6; font-style: italic; font-size: 12.5px; }
+#hizliMesaj { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+#hizliMesaj button { padding: 5px 9px; font-size: 13px; background: #2a3a31; color: #f4efe2; box-shadow: none; }
+#sohbetForm { display: flex; gap: 6px; margin-bottom: 8px; }
+#sohbetForm input { flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid #5d4a22; background: #0e1a14; color: inherit; }
+#sohbetKapat { width: 100%; }
