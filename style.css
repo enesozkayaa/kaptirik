@@ -243,3 +243,8 @@ details li { margin: 4px 0; }
 }
 .koltuk .uyku { position: absolute; left: -6px; top: -6px; font-size: 12px; filter: drop-shadow(0 1px 2px #000); }
 #elSonu .kart { padding-left: 12px; padding-right: 12px; }
+#eylemler .diziliBilgi {
+  display: inline-flex; align-items: center; gap: 4px; padding: 7px 12px; border-radius: 10px; font-size: 14px;
+  background: #2a3a31; color: #f4efe2; box-shadow: 0 2px 0 #111;
+}
+#eylemler .diziliBilgi b { color: #f6d58a; }

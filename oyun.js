@@ -369,8 +369,14 @@ function dugmeleriCiz() {
   const g = K.enIyiGruplar(ben.el, o.okey);
   const c = K.enIyiCiftler(ben.el, o.okey);
   const d = [];
-  d.push(`<button data-e="seriDiz" class="ikinci">Seri diz <b>${g.deger}</b></button>`);
-  d.push(`<button data-e="ciftDiz" class="ikinci">Çift diz <b>${c.ciftler.length}·${c.deger}</b></button>`);
+  if (o.ayar.yardimli) {
+    d.push(`<button data-e="seriDiz" class="ikinci">Seri diz <b>${g.deger}</b></button>`);
+    d.push(`<button data-e="ciftDiz" class="ikinci">Çift diz <b>${c.ciftler.length}·${c.deger}</b></button>`);
+  } else {
+    // Yardımsız: otomatik dizme yok, ama kendi dizdiğin grupların toplamı yazılır (tek tek saymaya gerek yok)
+    const ds = diziliGruplar('seri'), dc = diziliGruplar('cift');
+    d.push(`<span class="diziliBilgi">Dizili: <b>${ds.deger}</b>${dc.gruplar.length ? ` · ${dc.gruplar.length} çift <b>${dc.deger}</b>` : ''}</span>`);
+  }
   if (siraBende() && o.tur.cekti) {
     // Açma, ıstakada dizdiğin gruplara göre (düğmedeki sayı dizili olanların toplamı)
     const ds = diziliGruplar('seri'), dc = diziliGruplar('cift');
