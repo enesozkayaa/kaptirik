@@ -457,6 +457,7 @@ const Sahne = (() => {
     istakaAnahtari = anahtar;
     while (istakaGrubu.children.length) istakaGrubu.remove(istakaGrubu.children[0]);
     adlar.forEach((ad, koltuk) => {
+      if (koltuk === 0) return;  // benim ıstakam ekranın altında (HTML); masada ikincisi gereksiz
       const k = KOLTUK[koltuk];
       const i = istaka(ad, renkler[koltuk]);
       i.position.set(k.x, 0, k.z);
