@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f3d2a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Kaptırık</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="ikonlar/ikon-192.png">
+  <link rel="apple-touch-icon" href="ikonlar/ikon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="sahne"></div>
+
+  <!-- Ana menü -->
+  <section id="menu">
+    <div class="kart">
+      <h1>Kaptırık</h1>
+      <p class="alt">51 Okey · ıstakanı diz, 51'i geç, kaptırma!</p>
+      <label>Adın <input id="adim" maxlength="12" placeholder="Adını yaz" autocomplete="off"></label>
+      <div class="satir">
+        <span>El sayısı</span>
+        <div id="elSayisi" class="secenek">
+          <button data-el="3">3</button><button data-el="5" class="secili">5</button><button data-el="7">7</button><button data-el="9">9</button><button data-el="11">11</button>
+        </div>
+      </div>
+      <div class="satir">
+        <span>Oyun</span>
+        <div id="mod" class="secenek">
+          <button data-mod="essiz" class="secili">Eşsiz</button><button data-mod="esli" disabled title="Yakında">Eşli (yakında)</button>
+        </div>
+      </div>
+      <label class="kutucuk"><input type="checkbox" id="yardimli" checked> Yardımlı mod <small>(işlek uyarısı, atılanları görme)</small></label>
+      <button id="botlaBtn" class="buyuk">🤖 Botlarla oyna</button>
+      <p class="not">Arkadaşlarla online oda yakında geliyor.</p>
+      <details>
+        <summary>Kurallar kısaca</summary>
+        <ul>
+          <li>Başlayan 15, diğerleri 14 taş alır. Ortadan ya da soldakinin attığından (yandan) çekip bir taş atarsın.</li>
+          <li>İlk açış <b>51</b>. Sonra açan bir öncekinden fazlasını yapmalı (katlamalı). En az 4 çiftle de açılır.</li>
+          <li>Yandan taş ancak o tur açacaksan alınır. Açınca taşı veren seride ×10, çiftte ×20 ceza yer.</li>
+          <li>İşlek taş atmak 500, açamamak 1000 ceza. Elde kalan × 10 ceza.</li>
+          <li>Okeyle bitmek −2000, kafadan bitmek −1000. Kimse açmadan kafadan: −5000 (okeyle −10000, çiftle −20000).</li>
+          <li>Okeye uzun basınca ters döner. En düşük puan kazanır.</li>
+        </ul>
+      </details>
+    </div>
+  </section>
+
+  <!-- Oyun ekranı -->
+  <section id="oyun" hidden>
+    <header id="ust">
+      <button id="menuBtn" title="Ana menü">☰</button>
+      <span id="elBilgi"></span>
+      <span id="gostergeKutu"></span>
+      <span id="esik"></span>
+      <span id="desteBilgi"></span>
+      <button id="puanBtn" title="Puanlar">📊</button>
+      <button id="sesBtn" title="Ses">🔊</button>
+    </header>
+    <div id="koltuk1" class="koltuk"></div>
+    <div id="koltuk2" class="koltuk"></div>
+    <div id="koltuk3" class="koltuk"></div>
+    <div id="mesaj" hidden></div>
+    <footer id="alt">
+      <div id="sureCubuguKap"><div id="sureCubugu"></div></div>
+      <div id="koltuk0" class="koltuk"></div>
+      <div id="eylemler"></div>
+      <div id="istaka"></div>
+    </footer>
+  </section>
+
+  <!-- Atılan taşlar (yardımlı mod) -->
+  <section id="atilanEkrani" class="perde" hidden>
+    <div class="kart">
+      <h2 id="atilanBaslik"></h2>
+      <div id="atilanListe"></div>
+      <button id="atilanKapat">Kapat</button>
+    </div>
+  </section>
+
+  <!-- El sonu / puan tablosu -->
+  <section id="elSonu" class="perde" hidden>
+    <div class="kart">
+      <h2 id="elSonuBaslik"></h2>
+      <table id="elSonuTablo"></table>
+      <div id="elSonuDetay"></div>
+      <button id="sonrakiElBtn" class="buyuk"></button>
+    </div>
+  </section>
+
+  <section id="cikisEkrani" class="perde" hidden>
+    <div class="kart">
+      <h2>Ana menüye dönülsün mü?</h2>
+      <p>Bu oyun biter.</p>
+      <div class="ikili"><button id="cikisHayir">Hayır</button><button id="cikisEvet" class="tehlike">Evet, çık</button></div>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
+  <script src="kurallar.js"></script>
+  <script src="motor.js"></script>
+  <script src="ses.js"></script>
+  <script src="sahne.js"></script>
+  <script src="oyun.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  </script>
+</body>
+</html>

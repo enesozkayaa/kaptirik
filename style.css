@@ -1,0 +1,142 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden; background: #0b2a1d; color: #f4efe2;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  touch-action: manipulation; -webkit-text-size-adjust: 100%; user-select: none; -webkit-user-select: none;
+}
+input, select { font-size: 16px !important; }
+button {
+  font: inherit; color: #1b1206; background: linear-gradient(#f6d58a, #e0a93b); border: 0; border-radius: 10px;
+  padding: 8px 12px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 0 #8a5a12;
+}
+button:disabled { opacity: .45; cursor: default; }
+button:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+[hidden] { display: none !important; }
+
+#sahne { position: fixed; inset: 0; }
+#sahne canvas { display: block; }
+
+/* ---------- Kartlar / perdeler ---------- */
+.kart {
+  background: rgba(20, 30, 24, .94); border: 1px solid #5d4a22; border-radius: 16px; padding: 20px;
+  width: min(440px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-shadow: 0 10px 40px #000a;
+}
+#menu, .perde { position: fixed; inset: 0; display: grid; place-items: center; z-index: 20; }
+.perde { background: #0009; z-index: 30; }
+#menu { background: radial-gradient(circle at 50% 30%, #1d6b45, #0b2a1d 70%); }
+h1 { margin: 0; font-size: 44px; text-align: center; color: #f6d58a; letter-spacing: 2px; text-shadow: 0 3px 0 #6b3f0a; }
+h2 { margin: 0 0 12px; font-size: 20px; text-align: center; }
+.alt { text-align: center; margin: 4px 0 16px; opacity: .8; }
+.kart label { display: block; margin: 10px 0; }
+.kart input#adim { width: 100%; margin-top: 4px; padding: 10px; border-radius: 10px; border: 1px solid #5d4a22; background: #0e1a14; color: inherit; }
+.satir { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0; }
+.secenek { display: flex; gap: 4px; flex-wrap: wrap; }
+.secenek button { background: #2a3a31; color: #f4efe2; box-shadow: none; padding: 7px 11px; }
+.secenek button.secili { background: linear-gradient(#f6d58a, #e0a93b); color: #1b1206; }
+.kutucuk small { opacity: .7; }
+.buyuk { width: 100%; padding: 13px; font-size: 18px; margin-top: 10px; }
+.not { text-align: center; font-size: 13px; opacity: .6; }
+details { margin-top: 10px; font-size: 14px; }
+details li { margin: 4px 0; }
+.ikili { display: flex; gap: 8px; }
+.ikili button { flex: 1; }
+.tehlike { background: linear-gradient(#f08a8a, #d33); color: #fff; box-shadow: 0 2px 0 #7a1111; }
+
+/* ---------- Üst bar ---------- */
+#ust {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 6px 8px; padding-top: max(6px, env(safe-area-inset-top)); background: linear-gradient(#000a, #0000); font-size: 14px;
+}
+#ust button { padding: 5px 9px; background: #0007; color: #fff; box-shadow: none; }
+#gostergeKutu { display: inline-flex; align-items: center; gap: 4px; }
+#gostergeKutu small { font-size: 10px; opacity: .75; }
+#esik b { color: #f6d58a; }
+#puanBtn { margin-left: auto; }
+
+/* ---------- Oyuncu kutuları ---------- */
+.koltuk {
+  position: fixed; z-index: 9; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: #000a; border: 2px solid var(--renk, #888); border-radius: 12px; padding: 4px 9px; font-size: 13px; min-width: 76px;
+  transition: box-shadow .2s;
+}
+.koltuk b { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.koltuk .puan { font-weight: 700; }
+.koltuk .eksi { color: #7dff9b; }
+.koltuk .acti { font-size: 10px; background: #f6d58a; color: #1b1206; border-radius: 6px; padding: 0 5px; font-weight: 800; }
+.koltuk .tasSayisi { font-size: 11px; opacity: .75; }
+.koltuk.sirada { box-shadow: 0 0 0 3px #fff, 0 0 18px var(--renk); }
+#koltuk1 { right: 6px; top: 42%; }
+#koltuk2 { left: calc(50% + 160px); top: 40px; }
+#koltuk3 { left: 6px; top: 42%; }
+#koltuk0 { position: static; flex-direction: row; gap: 8px; margin: 0 auto 4px; width: max-content; }
+
+/* ---------- Mesaj ---------- */
+#mesaj {
+  position: fixed; z-index: 15; left: 50%; top: 38%; transform: translate(-50%, -50%); max-width: 90vw; text-align: center;
+  background: #000c; border-radius: 12px; padding: 10px 16px; font-size: 16px; pointer-events: none; animation: belir .2s;
+}
+#mesaj.hata { background: #7a1111e6; }
+#mesaj.ceza { background: #8a3c00ee; font-size: 18px; }
+#mesaj.iyi { background: #0d6b3ae6; }
+@keyframes belir { from { opacity: 0; transform: translate(-50%, -40%); } }
+
+/* ---------- Alt kısım: süre, düğmeler, ıstaka ---------- */
+#alt { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 0 6px max(6px, env(safe-area-inset-bottom)); }
+#sureCubuguKap { height: 5px; background: #0006; border-radius: 3px; margin: 0 auto 4px; max-width: 700px; overflow: hidden; }
+#sureCubugu { height: 100%; width: 100%; background: #6ee08f; transition: width 1s linear; }
+#sureCubugu.az { background: #ff5252; }
+#eylemler { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-bottom: 5px; }
+#eylemler button { padding: 7px 10px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
+#eylemler button.ikinci { background: #2a3a31; color: #f4efe2; box-shadow: 0 2px 0 #111; }
+#eylemler button.ikinci b { color: #f6d58a; }
+#eylemler .uyariBtn { background: linear-gradient(#ffd0a0, #f08a3a); }
+#eylemler .atBtn { background: linear-gradient(#9fe7b0, #3bb36a); }
+
+/* Istaka: 2 sıra x 15 yuva, ahşap */
+#istaka {
+  --g: min(44px, calc((100vw - 60px) / 15));
+  display: grid; grid-template-columns: repeat(15, var(--g)); gap: 2px; justify-content: center;
+  background: linear-gradient(#b97a3e, #8a5524); border-radius: 10px; padding: 5px; margin: 0 auto;
+  width: max-content; box-shadow: inset 0 -4px 0 #5e3612, 0 4px 14px #000a;
+}
+.yuva { width: var(--g); height: calc(var(--g) * 1.38); border-radius: 4px; background: #0001; }
+.yuva:nth-child(n+16) { margin-top: 3px; }
+
+/* Taşlar */
+.tas {
+  position: relative; width: 100%; height: 100%; border-radius: 5px; background: linear-gradient(#fffdf5, #ece3cc);
+  box-shadow: inset 0 -3px 0 #c9bb95, 0 2px 2px #0005; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; transition: transform .12s;
+}
+.tas .sayi { font-weight: 900; font-size: calc(var(--g, 30px) * .52); line-height: 1; }
+.tas .nokta { width: 22%; aspect-ratio: 1; border-radius: 50%; margin-top: 8%; }
+.tas .yildiz { color: #1f9d48; font-size: calc(var(--g, 30px) * .6); }
+.tas.okey { box-shadow: inset 0 -3px 0 #c9bb95, 0 0 0 2px #f2b600, 0 2px 4px #000; }
+.tas.ters { background: linear-gradient(#2f7a52, #1d5236); box-shadow: inset 0 -3px 0 #123a24, 0 0 0 2px #f2b600; }
+.tas.secili { transform: translateY(-9px); box-shadow: inset 0 -3px 0 #c9bb95, 0 0 0 3px #36c3ff, 0 6px 8px #0008; }
+.tas.yandan::after { content: ''; position: absolute; inset: -2px; border: 2px dashed #f08a3a; border-radius: 6px; }
+.tas .islek {
+  position: absolute; top: -7px; left: 50%; transform: translateX(-50%); background: #d62828; color: #fff; font-size: 8px;
+  font-weight: 800; border-radius: 4px; padding: 0 3px; white-space: nowrap;
+}
+.tas.mini { --g: 22px; width: 22px; height: 30px; display: inline-flex; vertical-align: middle; cursor: default; }
+.tas.mini .sayi { font-size: 13px; }
+.tas.mini .nokta { display: none; }
+
+#atilanListe { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 12px; }
+#atilanKapat { width: 100%; }
+#elSonuTablo { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+#elSonuTablo th, #elSonuTablo td { padding: 6px; text-align: right; border-bottom: 1px solid #ffffff1a; }
+#elSonuTablo th:first-child, #elSonuTablo td:first-child { text-align: left; }
+#elSonuTablo tr.ben { background: #f6d58a22; }
+#elSonuTablo .eksi { color: #7dff9b; }
+#elSonuTablo .arti { color: #ff8a8a; }
+#elSonuDetay ul { font-size: 13px; padding-left: 18px; margin: 0; opacity: .85; }
+
+@media (max-width: 560px) {
+  #ust { font-size: 12px; gap: 5px; }
+  .koltuk { font-size: 11px; min-width: 64px; padding: 3px 6px; }
+  #koltuk1, #koltuk3 { top: 30%; }
+  #koltuk2 { left: 50%; transform: translateX(-50%); top: 64px; }
+  #eylemler button { padding: 6px 8px; font-size: 12.5px; }
+}

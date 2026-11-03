@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<!--
+  Kaptırık - uygulama simgesini çizer.
+  Adres sonuna ?boyut=512&pay=0.08 yazılır (pay: kenar boşluğu; "maskable" simgede daha büyük).
+  PNG'ye çevirmek için Edge görünmez modda ekran görüntüsü alır:
+    msedge --headless --hide-scrollbars --window-size=512,512 --screenshot=ikonlar/ikon-512.png "file:///.../araclar/ikon-ciz.html?boyut=512&pay=0.08"
+-->
+<html>
+<head>
+<meta charset="UTF-8">
+<style>html, body { margin: 0; background: #0f3d2a; overflow: hidden; } canvas { display: block; }</style>
+</head>
+<body>
+<script>
+  const ayar = new URLSearchParams(location.search);
+  const boyut = +(ayar.get('boyut') || 512);
+  const pay = +(ayar.get('pay') || 0.08);
+  const c = document.createElement('canvas');
+  c.width = c.height = boyut;
+  document.body.appendChild(c);
+  const g = c.getContext('2d');
+  g.scale(boyut / 512, boyut / 512);
+
+  // Yeşil çuha
+  const arka = g.createRadialGradient(256, 200, 40, 256, 256, 380);
+  arka.addColorStop(0, '#2a9a63');
+  arka.addColorStop(1, '#0b2a1d');
+  g.fillStyle = arka;
+  g.fillRect(0, 0, 512, 512);
+
+  g.save();
+  const k = 1 - pay;
+  g.translate(256, 256);
+  g.scale(k, k);
+  g.translate(-256, -256);
+
+  // Yelpaze gibi açılmış üç taş: 5 kırmızı, 1 mavi, okey yıldızı
+  function tas(x, y, aci, yazi, renk) {
+    g.save();
+    g.translate(x, y);
+    g.rotate(aci);
+    g.shadowColor = '#0009';
+    g.shadowBlur = 24;
+    g.shadowOffsetY = 10;
+    g.fillStyle = '#fbf6e6';
+    g.beginPath();
+    g.roundRect(-78, -108, 156, 216, 22);
+    g.fill();
+    g.shadowColor = 'transparent';
+    g.fillStyle = '#d8c9a0';
+    g.fillRect(-78, 88, 156, 20);
+    g.fillStyle = renk;
+    g.font = '900 120px system-ui, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(yazi, 0, -14);
+    if (yazi !== '★') {
+      g.beginPath();
+      g.arc(0, 62, 14, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.restore();
+  }
+  tas(150, 280, -0.32, '5', '#d62828');
+  tas(362, 280, 0.32, '1', '#1f6feb');
+  tas(256, 250, 0, '★', '#1f9d48');
+  g.restore();
+
+  // Yazı
+  g.fillStyle = '#f6d58a';
+  g.font = '900 64px system-ui, sans-serif';
+  g.textAlign = 'center';
+  g.shadowColor = '#000';
+  g.shadowBlur = 10;
+  g.fillText('51', 256, 470 - pay * 200);
+</script>
+</body>
+</html>

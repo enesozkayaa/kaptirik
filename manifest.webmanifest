@@ -1,0 +1,19 @@
+{
+  "name": "Kaptırık",
+  "short_name": "Kaptırık",
+  "description": "51 Okey: botlara ya da arkadaşlarına karşı 3D masada oyna.",
+  "lang": "tr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b2a1d",
+  "theme_color": "#0f3d2a",
+  "categories": ["games"],
+  "icons": [
+    { "src": "ikonlar/ikon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "ikonlar/ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "ikonlar/ikon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
