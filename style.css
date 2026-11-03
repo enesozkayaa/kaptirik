@@ -154,6 +154,7 @@ details li { margin: 4px 0; }
 #atilanKapat { width: 100%; }
 /* El el puan tablosu */
 #elSonuTablo { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; table-layout: fixed; }
+#elSonuTablo thead th { position: sticky; top: -20px; background: #141e18; z-index: 1; }
 #elSonuTablo th, #elSonuTablo td { padding: 5px 3px; text-align: center; border-bottom: 1px solid #ffffff1a; vertical-align: middle; }
 #elSonuTablo th:first-child, #elSonuTablo td:first-child { width: 42px; color: #f6d58a; font-weight: 700; }
 #elSonuTablo th { font-size: 11px; font-weight: 600; }
@@ -169,6 +170,8 @@ details li { margin: 4px 0; }
 #elSonuTablo .eksi { color: #7dff9b; }
 #elSonuTablo .sifir { opacity: .4; }
 #elSonuTablo tr.suren td { background: #ffffff0a; }
+#elSonuTablo tr.oynanmadi td { opacity: .55; }
+#elSonuTablo b.sifir { font-weight: 400; }
 #elSonuTablo tr.suren td.elNo::after { content: ' ⏳'; font-size: 10px; }
 #elSonuTablo .toplamSatir td { border-top: 2px solid #f6d58a66; border-bottom: 0; padding-top: 8px; }
 #elSonuTablo .toplamSatir td b { font-size: 15px; color: #f6d58a; white-space: nowrap; }
@@ -233,3 +236,4 @@ details li { margin: 4px 0; }
   position: absolute; right: -6px; bottom: -5px; font-size: 11px; background: #1f9d48; border-radius: 50%;
   width: 16px; height: 16px; display: grid; place-items: center; box-shadow: 0 0 0 2px #140f0b;
 }
+.koltuk .uyku { position: absolute; left: -6px; top: -6px; font-size: 12px; filter: drop-shadow(0 1px 2px #000); }

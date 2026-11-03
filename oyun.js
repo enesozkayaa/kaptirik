@@ -307,7 +307,8 @@ function ciz() {
     // Avatarda ismin son kelimesinin baş harfi ("Bot Zeynep" → Z)
     const harf = [...(p.ad.trim().split(/\s+/).at(-1) || '?')][0].toLocaleUpperCase('tr');
     const seste = typeof Ag !== 'undefined' && Ag.sesteMi(no);
-    kutu.innerHTML = `<span class="avatar">${guvenli(harf)}${seste ? '<span class="mik" title="Sesli sohbette">🎙️</span>' : ''}</span>`
+    kutu.innerHTML = `<span class="avatar">${guvenli(harf)}${seste ? '<span class="mik" title="Sesli sohbette">🎙️</span>' : ''}`
+      + `${p.uzakta ? '<span class="uyku" title="Oynamıyor: süresi 10 saniye">💤</span>' : ''}</span>`
       + `<span class="bilgi"><b>${guvenli(p.ad)}</b><span class="puan ${puan < 0 ? 'eksi' : ''}">${puan}</span></span>`;
   });
   kartlariYerlestir();
@@ -689,6 +690,10 @@ function olay(tip, v) {
         }
       }
     }
+  } else if (tip === 'uzakta') {
+    mesaj(v.no === ui.benimNo
+      ? '💤 Süren bitti. Bir hamle yapana kadar turların 10 saniye sürecek.'
+      : `💤 ${ad(v.no)} oynamıyor: turları 10 saniye sürecek.`);
   } else if (tip === 'sureBitti' && v.no === ui.benimNo) {
     mesaj('⏰ Süren bitti: ortadan çekildi, perine girmeyen en küçük taşın atıldı.', 'hata');
   } else if (tip === 'elBitti' || tip === 'oyunBitti') {
@@ -710,18 +715,22 @@ function elTablosuHtml() {
     + `<span class="isim">${guvenli(p.ad)}</span></th>`).join('') + '</tr>';
   const birikim = oyuncular.map(() => 0);
   let govde = '';
-  for (let el = 1; el <= o.elNo; el++) {
-    govde += `<tr${el === o.elNo && o.asama === 'oyun' ? ' class="suren"' : ''}><td class="elNo">${el}</td>` + oyuncular.map(({ p }, k) => {
+  // Seçilen el sayısının hepsi yazılır; henüz oynanmamış ellerde – görünür
+  for (let el = 1; el <= o.ayar.elSayisi; el++) {
+    const oynandi = el <= o.elNo;
+    govde += `<tr class="${el === o.elNo && o.asama === 'oyun' ? 'suren' : ''}${oynandi ? '' : ' oynanmadi'}"><td class="elNo">${el}</td>` + oyuncular.map(({ p }, k) => {
+      if (!oynandi) return '<td><span class="sifir">–</span><span class="sifir">–</span><b class="sifir">–</b></td>';
       const kayit = p.gecmis.filter(g => g.el === el);
       const ceza = toplamla(kayit, 1), duser = toplamla(kayit, -1);
       birikim[k] += ceza + duser;
-      return `<td>${ceza ? `<span class="arti">+${ceza}</span>` : ''}${duser ? `<span class="eksi">${duser}</span>` : ''}`
-        + `${!ceza && !duser ? '<span class="sifir">0</span>' : ''}<b>${birikim[k]}</b></td>`;
+      return `<td><span class="${ceza ? 'arti' : 'sifir'}">${ceza ? `+${ceza}` : '0'}</span>`
+        + `<span class="${duser ? 'eksi' : 'sifir'}">${duser || '0'}</span><b>${birikim[k]}</b></td>`;
     }).join('') + '</tr>';
   }
   // En düşük toplam önde: 👑
   const enAz = Math.min(...birikim);
-  const son = '<tr class="toplamSatir"><td>Toplam</td>' + birikim.map(b => `<td><b>${b === enAz ? '👑 ' : ''}${b}</b></td>`).join('') + '</tr>';
+  const herkesEsit = birikim.every(b => b === enAz);
+  const son = '<tr class="toplamSatir"><td>Toplam</td>' + birikim.map(b => `<td><b>${b === enAz && !herkesEsit ? '👑 ' : ''}${b}</b></td>`).join('') + '</tr>';
   return `<thead>${bas}</thead><tbody>${govde}${son}</tbody>`;
 }
 

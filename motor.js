@@ -18,6 +18,7 @@ const Motor = (() => {
   const K = Kurallar;
   const TUR_SURESI = 30;     // saniye
   const ACMA_SURESI = 60;
+  const UZAKTA_SURESI = 10;  // süresini kaçıran (oynamayan) oyuncunun sonraki turları kısa sürer, kimse beklemesin
   const ISLEME_SINIRI = 2;   // bir gruba bir turda en fazla bu kadar taş işlenir    // elini açınca düşünmek için verilen süre (saniye)
   const BOT_HIZ = 900;       // botun her hamlesi arasında bekleme (ms)
 
@@ -77,7 +78,8 @@ const Motor = (() => {
   function siraBasla(no, ilk = false) {
     o.sira = no;
     const p = o.oyuncular[no];
-    o.tur = { cekti: ilk, yandan: null, acikBasta: p.acti, kalan: TUR_SURESI, toplam: TUR_SURESI, sureSifirlandi: false, geriAl: [], islenen: {} };
+    const sure = p.uzakta ? UZAKTA_SURESI : TUR_SURESI;
+    o.tur = { cekti: ilk, yandan: null, acikBasta: p.acti, kalan: sure, toplam: sure, sureSifirlandi: false, geriAl: [], islenen: {} };
     zamanlayiciBaslat();
     degisti();
     olay('sira', { no });
@@ -102,6 +104,11 @@ const Motor = (() => {
   // Süre bitince: ortadan çek (yandan alınan geri bırakılır), per/seri/çiftine girmeyen, işlek olmayan en küçük taşı at
   function sureBitti(no) {
     const p = o.oyuncular[no];
+    // Oynamadı: bir dahaki turlarında süresi kısa olur (kendisi bir hamle yapınca normale döner)
+    if (!p.uzakta) {
+      p.uzakta = true;
+      olay('uzakta', { no });
+    }
     if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no, true);
     if (!o.tur.cekti) ortadanCek(no);
     if (o.asama !== 'oyun' || o.sira !== no) return;
@@ -357,6 +364,7 @@ const Motor = (() => {
     const p = o?.oyuncular[no];
     if (!p || p.bot === bot) return;
     p.bot = bot;
+    if (!bot) p.uzakta = false;  // oyuna geri döndü
     degisti();
     if (bot && o.asama === 'oyun' && o.sira === no) botOyna(no);
   }
@@ -553,11 +561,36 @@ const Motor = (() => {
     at(no, enKotuTas(p).id);
   }
 
+  // Oyuncunun kendi yaptığı hamle: "oynamıyor" sayılıyorsa artık oynuyor, süresi normale döner.
+  // (Süre bitince otomatik yapılan hamleler içerden çağrılır, buradan geçmez.)
+  const oyuncuHamlesi = fn => (no, ...args) => {
+    const r = fn(no, ...args);
+    const p = o?.oyuncular[no];
+    if (r.ok && p?.uzakta) {
+      p.uzakta = false;
+      if (o.asama === 'oyun' && o.sira === no && o.tur.toplam < TUR_SURESI) {
+        o.tur.kalan = o.tur.toplam = TUR_SURESI;
+        olay('sure', { kalan: o.tur.kalan, toplam: o.tur.toplam, no });
+      }
+      degisti();
+    }
+    return r;
+  };
+
   return {
     TUR_SURESI,
     dinleyici(ad, fn) { dinle[ad] = fn; },
     get oyun() { return o; },
-    yeniOyun, sonrakiEl, ortadanCek, yandanAl, geriBirak, ac, isle, hepsiniIsle, at, geriAl, geriAlinabilir, botYap, tersCevir, gorunum, gereken, kimseAcmadi, yandakiTas, enKotuTas,
+    yeniOyun, sonrakiEl, geriAlinabilir, botYap, gorunum, gereken, kimseAcmadi, yandakiTas, enKotuTas,
+    ortadanCek: oyuncuHamlesi(ortadanCek),
+    yandanAl: oyuncuHamlesi(yandanAl),
+    geriBirak: oyuncuHamlesi(geriBirak),
+    ac: oyuncuHamlesi(ac),
+    isle: oyuncuHamlesi(isle),
+    hepsiniIsle: oyuncuHamlesi(hepsiniIsle),
+    at: oyuncuHamlesi(at),
+    geriAl: oyuncuHamlesi(geriAl),
+    tersCevir: oyuncuHamlesi(tersCevir),
   };
 })();
 
