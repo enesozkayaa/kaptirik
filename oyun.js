@@ -281,7 +281,7 @@ function ciz() {
   const koltuklar = [0, 1, 2, 3].map(k => {
     const no = oyuncuNo(k);
     const p = o.oyuncular[no];
-    return { ad: p.ad, renk: KOLTUK_RENKLERI[no], tasSayisi: p.el.length, atilanlar: p.atilanlar };
+    return { ad: p.ad, renk: KOLTUK_RENKLERI[no], tasSayisi: p.el.length, atilanlar: p.atilanlar, ikram: o.ikram?.[no] };
   });
   const tutulan = ui.surukle?.basladi && tasBul(ui.surukle.id);
   const isaretli = new Set(tutulan && ben.acti && siraBende() && o.ayar.yardimli && o.tur.cekti
@@ -641,6 +641,11 @@ function masaDokunus(h) {
     else mesaj('Atılan taşları görmek için yardımlı modu aç. Aklında tut! 🧠');
   } else if (h.tur === 'grup') {
     mesaj('İşlemek için ıstakandaki taşı tutup bu gruba sürükle.');
+  } else if (h.tur === 'ikram' && h.koltuk === 0) {
+    // Kendi çayından bir yudum / tostundan bir ısırık
+    const kalan = o.ikram?.[ui.benimNo]?.[h.ne];
+    if (kalan > 0) Masa.ikram(ui.benimNo, h.ne, 'tuket');
+    else mesaj(`${KANTIN[h.ne].simge} Bitti. 🛒 Kantinden yenisini söyle.`);
   }
 }
 
@@ -648,6 +653,29 @@ function atilanlariGoster(no) {
   const p = Masa.oyun.oyuncular[no];
   $('atilanListe').innerHTML = p.atilanlar.length ? p.atilanlar.map(t => tasHtml(t, { mini: true })).join('') : '<p>Henüz taş atmadı.</p>';
   $('atilanEkrani').hidden = false;
+}
+
+// ---------- Kantin (süs) ----------
+// Fiyatlar motordakilerle aynı (söyleyenin hesabına borç yazılır)
+const KANTIN = {
+  cay: { ad: 'Çay', simge: '☕', aciklama: 'İnce belli bardakta, taze demlenmiş', fiyat: 25 },
+  tost: { ad: 'Kaşarlı tost', simge: '🥪', aciklama: 'Bol kaşarlı, ızgarada', fiyat: 150 },
+};
+function kantiniAc() {
+  const o = Masa.oyun;
+  $('kantinListe').innerHTML = Object.entries(KANTIN).map(([ne, u]) => `<button class="urun" data-ne="${ne}">`
+    + `<span class="simge">${u.simge}</span><span class="bilgi"><b>${u.ad}</b><small>${u.aciklama}</small></span>`
+    + `<span class="soyle">${u.fiyat} TL</span></button>`).join('');
+  // Hesap: kim ne aldı, ne kadar borcu var
+  const satirlar = o.oyuncular.map((p, i) => {
+    const k = o.ikram?.[i] ?? {};
+    const neler = Object.entries(k.adet ?? {}).map(([ne, n]) => `${KANTIN[ne].simge}×${n}`).join(' ');
+    return `<tr class="${i === ui.benimNo ? 'ben' : ''}"><td><span class="nokta" style="background:${KOLTUK_RENKLERI[i]}"></span>${guvenli(p.ad)}</td>`
+      + `<td>${neler || '–'}</td><td><b>${k.borc ?? 0} TL</b></td></tr>`;
+  }).join('');
+  const toplam = o.oyuncular.reduce((a, p, i) => a + (o.ikram?.[i]?.borc ?? 0), 0);
+  $('kantinHesap').innerHTML = `<tr><th>Hesap</th><th>Aldıkları</th><th>Borç</th></tr>${satirlar}<tr class="toplam"><td>Masa toplamı</td><td></td><td><b>${toplam} TL</b></td></tr>`;
+  $('kantin').hidden = false;
 }
 
 // ---------- Motor olayları ----------
@@ -695,6 +723,14 @@ function olay(tip, v) {
           }, (k * 1000) / kac);
         }
       }
+    }
+  } else if (tip === 'ikram') {
+    const u = KANTIN[v.ne];
+    if (v.islem === 'siparis') {
+      Ses.cayGeldi();
+      mesaj(v.no === ui.benimNo ? `${u.simge} ${u.ad} geldi (${u.fiyat} TL hesabına yazıldı). Afiyet olsun! Dokundukça ${v.ne === 'cay' ? 'içersin' : 'yersin'}.` : `${u.simge} ${ad(v.no)} ${u.ad.toLocaleLowerCase('tr')} söyledi`);
+    } else {
+      Ses[v.ne === 'cay' ? 'yudum' : 'isirik']();
     }
   } else if (tip === 'uzakta') {
     mesaj(v.no === ui.benimNo
@@ -819,6 +855,14 @@ $('sonrakiElBtn').onclick = () => {
   // Odaya katılan oyuncu: yeni eli oda sahibi başlatır, gelince ekran kendiliğinden geçer
 };
 $('puanBtn').onclick = puanTablosu;
+$('kantinBtn').onclick = kantiniAc;
+$('kantinKapat').onclick = () => ($('kantin').hidden = true);
+$('kantinListe').addEventListener('click', e => {
+  const b = e.target.closest('.urun');
+  if (!b || !Masa.oyun) return;
+  Masa.ikram(ui.benimNo, b.dataset.ne, 'siparis');
+  $('kantin').hidden = true;
+});
 $('atilanKapat').onclick = () => ($('atilanEkrani').hidden = true);
 $('sesBtn').onclick = () => ($('sesBtn').textContent = Ses.acKapa() ? '🔊' : '🔇');
 $('sesBtn').textContent = Ses.acik ? '🔊' : '🔇';

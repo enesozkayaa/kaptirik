@@ -46,6 +46,8 @@ const Motor = (() => {
       oyuncular: isimler.map((ad, i) => ({ ad, bot: ayar.botlar ? !!ayar.botlar[i] : i > 0, el: [], atilanlar: [], acti: false, acisTuru: null, toplam: 0, elPuani: 0, gecmis: [] })),
       elNo: 0,
       baslayan: Math.floor(Math.random() * 4),
+      // Kantinden söylenenler (süs): her oyuncunun önünde her şeyden kalan miktar (yoksa hiç gelmemiş)
+      ikram: isimler.map(() => ({})),
       asama: 'oyun',
     };
     elBaslat();
@@ -359,6 +361,25 @@ const Motor = (() => {
     return !!s && (s.takas || (o.tur.islenen[g.id] ?? 0) < ISLEME_SINIRI);
   }
 
+  // ---------- Kantin (süs) ----------
+  // Çay, tost...: söyleyince dolu gelir; dokundukça azalır (içilir / ısırılır). Oyuna etkisi yok.
+  // Söyleyenin kantin hesabına (borç) fiyatı yazılır.
+  const IKRAMLAR = { cay: { dolu: 4, fiyat: 25 }, tost: { dolu: 4, fiyat: 150 } };  // dolu: kaç yudum / ısırık, fiyat: TL
+  function ikram(no, ne, islem) {
+    const k = o?.ikram?.[no];
+    if (!k || !(ne in IKRAMLAR)) return hata('Kantinde bu yok.');
+    if (islem === 'siparis') {
+      k[ne] = IKRAMLAR[ne].dolu;
+      k.borc = (k.borc ?? 0) + IKRAMLAR[ne].fiyat;
+      k.adet = { ...k.adet, [ne]: (k.adet?.[ne] ?? 0) + 1 };
+    }
+    else if (islem === 'tuket' && k[ne] > 0) k[ne]--;
+    else return hata('Bitti, yenisini söyle.');
+    olay('ikram', { no, ne, islem, kalan: k[ne] });
+    degisti();
+    return tamam();
+  }
+
   // ---------- Online ----------
   // Oyundan çıkan oyuncunun yerine bot oynar; geri gelince bot bırakır, oyuncu kaldığı yerden devam eder
   function botYap(no, bot) {
@@ -514,6 +535,12 @@ const Motor = (() => {
   async function botOyna(no) {
     const p = o.oyuncular[no];
     const el = o.elNo;
+    // Botlar da arada bir çay söyleyip içer, tost ısırır (sadece süs)
+    const k = o.ikram[no];
+    if (Math.random() < 0.25) {
+      const ne = Math.random() < 0.7 ? 'cay' : 'tost';
+      ikram(no, ne, k[ne] > 0 ? 'tuket' : 'siparis');
+    }
     // Oyuncu geri gelirse (bot değilse artık) bot hemen bırakır
     const devam = () => o.asama === 'oyun' && o.sira === no && o.elNo === el && p.bot;
     await bekle(BOT_HIZ);
@@ -582,7 +609,7 @@ const Motor = (() => {
     TUR_SURESI,
     dinleyici(ad, fn) { dinle[ad] = fn; },
     get oyun() { return o; },
-    yeniOyun, sonrakiEl, geriAlinabilir, botYap, gorunum, gereken, kimseAcmadi, yandakiTas, enKotuTas,
+    yeniOyun, sonrakiEl, geriAlinabilir, ikram, botYap, gorunum, gereken, kimseAcmadi, yandakiTas, enKotuTas,
     ortadanCek: oyuncuHamlesi(ortadanCek),
     yandanAl: oyuncuHamlesi(yandanAl),
     geriBirak: oyuncuHamlesi(geriBirak),

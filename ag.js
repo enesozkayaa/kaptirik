@@ -33,13 +33,13 @@ const Uzak = {
     return Ag.eylem('tersCevir', [id]);
   },
 };
-['ortadanCek', 'yandanAl', 'geriBirak', 'geriAl', 'ac', 'isle', 'hepsiniIsle', 'at'].forEach(ad => {
+['ortadanCek', 'yandanAl', 'geriBirak', 'geriAl', 'ac', 'isle', 'hepsiniIsle', 'at', 'ikram'].forEach(ad => {
   Uzak[ad] = (no, ...args) => Ag.eylem(ad, args);
 });
 
 const Ag = (() => {
   // Online kısmı her değiştiğinde 1 artır: eski sürümle gelen oyuncu odaya alınmaz
-  const SURUM = 2;
+  const SURUM = 3;
   const ODA_ONEKI = 'kaptirik-oda-';
   const KOD_HARFLERI = 'ABCDEFGHJKLMNPRSTUVYZ23456789';  // karışabilecek O/0, I/1 yok
   const KOD_UZUNLUK = 5;
@@ -48,7 +48,7 @@ const Ag = (() => {
   const OTOMATIK_KATIL = 'kaptirik.otomatikKatil';  // sayfa yenilenince aynı odaya geri gir
   const SON_ODA = 'kaptirik.sonOda';                 // uygulama kapanıp açılınca "odaya geri dön"
   const KIMLIK = 'kaptirik.kimlik';                  // bu telefonu tanımak için (geri dönünce aynı koltuk)
-  const IZINLI = ['ortadanCek', 'yandanAl', 'geriBirak', 'geriAl', 'ac', 'isle', 'hepsiniIsle', 'at', 'tersCevir'];
+  const IZINLI = ['ortadanCek', 'yandanAl', 'geriBirak', 'geriAl', 'ac', 'isle', 'hepsiniIsle', 'at', 'tersCevir', 'ikram'];
 
   const ag = {
     mod: 'yerel',      // 'yerel' | 'ev' | 'misafir'
@@ -228,6 +228,7 @@ const Ag = (() => {
     if (misafir.no === null || ag.koltuklar[misafir.no]?.misafir !== misafir) return;
     const no = misafir.no;
     if (m?.tip === 'eylem' && ag.basladi && IZINLI.includes(m.ad) && Array.isArray(m.args)) {
+      if (m.ad === 'ikram') return Motor.ikram(no, ...m.args);  // süs: hata mesajı yollamaya gerek yok
       const r = Motor[m.ad](no, ...m.args);
       if (!r.ok) gonder(misafir, { tip: 'hata', eylem: m.ad, mesaj: r.hata });
       else if (m.ad === 'hepsiniIsle') gonder(misafir, { tip: 'sonuc', eylem: m.ad, r });

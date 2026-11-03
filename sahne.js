@@ -166,6 +166,87 @@ const Sahne = (() => {
     return grup;
   }
 
+  // ---------- Kantin: çay ve tost (süs) ----------
+  const DOLU = 4;
+  // İnce belli çay bardağı (yandan kesit: yarıçap, yükseklik)
+  const BARDAK = [[0.05, 0], [0.058, 0.012], [0.068, 0.06], [0.05, 0.13], [0.044, 0.165], [0.058, 0.22], [0.078, 0.29], [0.083, 0.31]];
+  const bardakYaricapi = y => {
+    for (let i = 1; i < BARDAK.length; i++) {
+      const [r0, y0] = BARDAK[i - 1], [r1, y1] = BARDAK[i];
+      if (y <= y1) return r0 + (r1 - r0) * ((y - y0) / (y1 - y0));
+    }
+    return BARDAK.at(-1)[0];
+  };
+  const camMalz = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.28, roughness: 0.05, metalness: 0.1, side: THREE.DoubleSide, depthWrite: false });
+  const cayMalz = new THREE.MeshStandardMaterial({ color: 0xa8360c, transparent: true, opacity: 0.88, roughness: 0.2 });
+  const porselen = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 });
+  const kirmizi = new THREE.MeshStandardMaterial({ color: 0xc8102e, roughness: 0.4 });
+
+  function cayBardagi(kalan) {
+    const grup = new THREE.Group();
+    const tabak = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.14, 0.022, 28), porselen);
+    tabak.position.y = 0.011;
+    const kenar = new THREE.Mesh(new THREE.TorusGeometry(0.158, 0.009, 6, 28), kirmizi);
+    kenar.rotation.x = -Math.PI / 2;
+    kenar.position.y = 0.022;
+    const cam = new THREE.Mesh(new THREE.LatheGeometry(BARDAK.map(([r, y]) => new THREE.Vector2(r, y)), 28), camMalz);
+    cam.position.y = 0.022;
+    grup.add(tabak, kenar, cam);
+    // Çay: kalan yudum kadar dolu (dolu bardak ağzına kadar değil, biraz boşluk)
+    if (kalan > 0) {
+      const h = 0.27 * (kalan / DOLU);
+      const noktalar = [new THREE.Vector2(0, 0.012)];
+      for (let y = 0.012; y < h; y += 0.02) noktalar.push(new THREE.Vector2(bardakYaricapi(y) * 0.9, y));
+      noktalar.push(new THREE.Vector2(bardakYaricapi(h) * 0.9, h), new THREE.Vector2(0, h));
+      const cay = new THREE.Mesh(new THREE.LatheGeometry(noktalar, 24), cayMalz);
+      cay.position.y = 0.022;
+      grup.add(cay);
+    }
+    grup.traverse(m => (m.castShadow = true));
+    return grup;
+  }
+
+  let tostDokusu;
+  function tostTabagi(kalan) {
+    const grup = new THREE.Group();
+    const tabak = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.025, 32), porselen);
+    tabak.position.y = 0.012;
+    grup.add(tabak);
+    tostDokusu ??= dokuKanvas(128, 128, (g, w, h) => {
+      g.fillStyle = '#d9963f';
+      g.fillRect(0, 0, w, h);
+      g.strokeStyle = '#7a3e10';  // ızgara izleri
+      g.lineWidth = 7;
+      for (let k = -h; k < w; k += 26) {
+        g.beginPath();
+        g.moveTo(k, h);
+        g.lineTo(k + h, 0);
+        g.stroke();
+      }
+    });
+    const ekmek = new THREE.MeshStandardMaterial({ map: tostDokusu, roughness: 0.8 });
+    const kabuk = new THREE.MeshStandardMaterial({ color: 0xa85a1c, roughness: 0.85 });
+    // Tost dört dilim gibi; her ısırıkta bir dilim eksilir (sağdan)
+    for (let i = 0; i < kalan; i++) {
+      const dilim = new THREE.Mesh(new THREE.BoxGeometry(0.105, 0.06, 0.3), [kabuk, kabuk, ekmek, kabuk, kabuk, kabuk]);
+      dilim.position.set(-0.165 + i * 0.11, 0.055, 0);
+      dilim.castShadow = true;
+      grup.add(dilim);
+      // Peynir kenardan taşmış
+      const peynir = new THREE.Mesh(new THREE.BoxGeometry(0.105, 0.012, 0.31), new THREE.MeshStandardMaterial({ color: 0xffe8a0, roughness: 0.6 }));
+      peynir.position.set(dilim.position.x, 0.05, 0);
+      grup.add(peynir);
+    }
+    // Kırıntılar
+    for (let i = 0; i < (DOLU - kalan) * 3; i++) {
+      const k = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.012, 0.02), ekmek);
+      k.position.set(Math.sin(i * 7.3) * 0.18, 0.03, Math.cos(i * 4.1) * 0.15);
+      k.rotation.y = i;
+      grup.add(k);
+    }
+    return grup;
+  }
+
   // ---------- Istaka ----------
   // Masanın ortasına bakan dik ahşap pano; arkasında (sahibinin tarafında) iki üçgen destek ayağı.
   // Taşlar panonun arkasında kalır, rakibin taşları görünmez. Panonun ön yüzüne oyunun adı (KAPTİRİK) kazılı.
@@ -245,6 +326,7 @@ const Sahne = (() => {
   // Atılan taşların köşeleri (koltuğa göre). Sıra saatin tersine: ben (alt) → sağ → üst → sol.
   // Ben sağ alt köşeye atarım (sağdaki oradan alır); soldaki sol alt köşeye atar, ben oradan alırım.
   const KOSE = [[3.15, 3.15], [3.15, -3.15], [-3.15, -3.15], [-3.15, 3.15]];
+  const DONUS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];  // koltuğun önündeki alanı o koltuğa çevirir: alt, sağ, üst, sol
   const DESTE = V(-0.42, 0, 0);
   const BUYUK = 1.6;  // deste ve gösterge taşları
 
@@ -315,6 +397,23 @@ const Sahne = (() => {
       dinamik.add(gost);
     }
 
+    // Kantinden gelenler: her oyuncunun önünde, açtığı grupların sağındaki boşlukta (köşelere değmeden)
+    g.koltuklar.forEach((k, koltuk) => {
+      const kap = new THREE.Group();
+      kap.rotation.y = DONUS[koltuk];
+      [['cay', cayBardagi, 1.05, 2.8], ['tost', tostTabagi, 1.75, 2.45]].forEach(([ne, yap, x, z]) => {
+        const kalan = k.ikram?.[ne];
+        if (kalan === undefined) return;
+        const nesne = yap(kalan);
+        nesne.position.set(x, 0, z);
+        nesne.rotation.y = 0.4;
+        nesne.traverse(m => (m.userData.tik = { tur: 'ikram', koltuk, ne }));
+        tiklanabilir.push(nesne);
+        kap.add(nesne);
+      });
+      dinamik.add(kap);
+    });
+
     // Köşelerde atılan taşlar: her oyuncu sağındaki köşeye atar, sıradaki oyuncu oradan alır
     g.koltuklar.forEach((k, koltuk) => {
       const [x, z] = KOSE[koltuk];
@@ -345,8 +444,8 @@ const Sahne = (() => {
     // Alanlar fırıldak gibi kaydırılmıştır, birbirine binmez.
     // Her grup ayrı bir satırda, alt alta (işlendikçe uzayan grup yandakine taşmasın).
     // Satır çoğalırsa aralık daralır; satıra sığmayan uzun grup küçülerek sığar.
-    const ALAN = { x0: -2.55, x1: 0.75, z0: 1.05, zSon: 3.1 };  // köşelerdeki atılan taşlardan uzak dursun
-    const DONUS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];  // alt, sağ, üst, sol
+    const ALAN = { x0: -2.0, x1: 0.75, z0: 1.05, zSon: 3.1 };  // köşelerdeki atılan taşlardan uzak dursun
+    // (DONUS: koltukların yönü, aşağıda tanımlı; kantin de kullanıyor)
     const M = 1.45;  // açılan taşlar büyük olsun, okunsun
     const yereDon = (x, z, a) => ({ x: x * Math.cos(a) + z * Math.sin(a), z: -x * Math.sin(a) + z * Math.cos(a) });
     const koltugaGore = [[], [], [], []];

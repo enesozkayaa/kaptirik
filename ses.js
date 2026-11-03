@@ -135,6 +135,44 @@ const Ses = (() => {
       vurus(0, 1, 1);
       for (let i = 0; i < 20; i++) vurus(0.15 + oyna(0, 0.5), oyna(0.2, 0.5), 0.5);
     },
+    // Kantin: bardak tabağa konur (iki çın), çaydan yudum, tosttan ısırık
+    cayGeldi: () => {
+      motor();
+      const t = ctx.currentTime;
+      [0, 0.09].forEach((g, i) => {
+        tini(t + g, 3100 + i * 350, 0.25, 0.05);
+        tini(t + g, 5200 + i * 300, 0.18, 0.03);
+      });
+      vurus(0, 0.25, 0.4);
+    },
+    yudum: () => {
+      motor();
+      const t = ctx.currentTime;
+      [0, 0.22].forEach(g => {
+        const k = ctx.createBufferSource();
+        k.buffer = gurultu;
+        const f = ctx.createBiquadFilter();
+        f.type = 'bandpass';
+        f.Q.value = 3;
+        f.frequency.setValueAtTime(700, t + g);
+        f.frequency.exponentialRampToValueAtTime(1800, t + g + 0.18);
+        const s = ctx.createGain();
+        s.gain.setValueAtTime(0.0001, t + g);
+        s.gain.exponentialRampToValueAtTime(0.25, t + g + 0.05);
+        s.gain.exponentialRampToValueAtTime(0.0001, t + g + 0.2);
+        k.connect(f);
+        f.connect(s);
+        s.connect(ana);
+        k.start(t + g, Math.random() * 0.2);
+        k.stop(t + g + 0.22);
+      });
+    },
+    isirik: () => {
+      motor();
+      const t = ctx.currentTime;
+      for (let i = 0; i < 6; i++) hisirti(t + i * 0.035 + Math.random() * 0.02, { sure: 0.03, tip: 'bandpass', frekans: oyna(2500, 4500), q: 1.5, seviye: 0.35 });
+      hisirti(t, { sure: 0.08, tip: 'lowpass', frekans: 400, seviye: 0.4 });
+    },
     kazanma: () => {
       for (let i = 0; i < 40; i++) vurus(oyna(0, 1.6), oyna(0.2, 0.6), 0.6);
     },
