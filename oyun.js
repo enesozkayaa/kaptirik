@@ -294,10 +294,10 @@ function ciz() {
     kutu.className = `koltuk k${k}${sirada ? ' sirada' : ''}`;
     kutu.style.setProperty('--renk', KOLTUK_RENKLERI[no]);
     kutu.innerHTML = `<span class="yon">${['', '➡️', '⬆️', '⬅️'][k]}</span><b>${guvenli(p.ad)}</b><span class="puan ${puan < 0 ? 'eksi' : ''}">${puan}</span>`
-      + (p.acti ? `<span class="acti">${p.acisTuru === 'cift' ? 'ÇİFT' : 'AÇTI'}</span>` : '')
-      + `<span class="sn">${sirada ? o.tur.kalan : ''}</span>`;
+      + (p.acti ? `<span class="acti">${p.acisTuru === 'cift' ? 'ÇİFT' : 'AÇTI'}</span>` : '');
   });
 
+  if (o.tur) sayaciGoster(o.tur.kalan, o.tur.toplam);
   dugmeleriCiz();
   // Sürüklerken ıstakayı yeniden çizme (tutulan taş yerinden kopmasın); bırakınca çizilir
   if (ui.surukle) return;
@@ -316,6 +316,18 @@ function ciz() {
   } else if (ui.ucan && performance.now() < ui.ucan.bitis) {
     tasEl(ui.ucan.id)?.classList.add('gizli');  // uçuş sürerken yeniden çizildiyse yine gizle
   }
+}
+
+// Sağdaki yuvarlak sayaç: sıradaki oyuncunun kalan süresi (çerçeve rengi o oyuncunun rengi)
+function sayaciGoster(kalan, toplam) {
+  const o = Motor.oyun;
+  const s = $('sayac');
+  s.hidden = o.asama !== 'oyun';
+  s.querySelector('b').textContent = Math.max(0, kalan);
+  s.style.setProperty('--oran', Math.max(0, kalan / toplam));
+  s.classList.toggle('az', kalan <= 10);
+  s.style.boxShadow = `0 0 0 2px ${KOLTUK_RENKLERI[o.sira]}, 0 2px 8px #0008`;
+  s.title = `${o.oyuncular[o.sira].ad} için kalan süre`;
 }
 
 const tasEl = id => document.querySelector(`#istaka .tas[data-id="${id}"]`);
@@ -612,8 +624,7 @@ function olay(tip, v) {
     const yuzde = Math.max(0, v.kalan / (v.toplam || Motor.TUR_SURESI));
     $('sureCubugu').style.width = `${yuzde * 100}%`;
     $('sureCubugu').classList.toggle('az', v.kalan <= 10);
-    const sn = $(`koltuk${koltukNo(v.no)}`).querySelector('.sn');
-    if (sn) sn.textContent = v.kalan;
+    sayaciGoster(v.kalan, v.toplam || Motor.TUR_SURESI);
     if (v.no === ui.benimNo) {
       if (v.kalan <= 5 && v.kalan > 0) Ses.uyari();
       else if (v.kalan <= 10) Ses.tik();
