@@ -514,7 +514,7 @@ function surukleKur() {
     }
     s.hayalet.style.left = `${e.clientX - s.dx}px`;
     s.hayalet.style.top = `${e.clientY - s.dy}px`;
-    if (s.atabilir) Sahne.atmaYeri(true, atmaYerindeMi(e.clientX, e.clientY));
+    if (s.atabilir) Sahne.atmaYeri(true, atmaHalkasiBuyukMu(e.clientX, e.clientY, s.id));
     // Istakada üstünden geçilen yuvayı göster
     document.querySelectorAll('.yuva.hedef').forEach(y => y.classList.remove('hedef'));
     document.elementFromPoint(e.clientX, e.clientY)?.closest('.yuva')?.classList.add('hedef');
@@ -544,6 +544,16 @@ function koseUzakligi(x, y) {
 }
 const atmaYerindeMi = (x, y) => koseUzakligi(x, y) < 1.6;
 
+// Halka büyüdüyse bırakınca taş atılır: köşeye yakınsa ve taş tam üstünde durduğu gruba uymuyorsa.
+// Sürüklerken halkanın büyümesi ve bırakınca ne olacağı bu tek kurala bağlı (ikisi hep aynı).
+function atmaHalkasiBuyukMu(x, y, id) {
+  if (!atmaYerindeMi(x, y)) return false;
+  const o = Motor.oyun;
+  const n = Sahne.noktada(x, y);
+  const t = tasBul(id);
+  return !(n.tik?.tur === 'grup' && t && K.isleme(o.masa.find(g => g.id === n.tik.id), t, o.okey));
+}
+
 function birak(s, x, y) {
   const o = Motor.oyun;
   const id = s.id;
@@ -568,7 +578,7 @@ function birak(s, x, y) {
   const ustundeki = n.tik?.tur === 'grup' ? n.tik.id : null;
   const yakin = Sahne.yakinGruplar(n.x, n.z, 1.1).find(uyar);
   const grupId = ustundeki && uyar(ustundeki) ? ustundeki : yakin || null;
-  const kose = koseUzakligi(x, y);
+  const atilacak = atmaHalkasiBuyukMu(x, y, id);
   const at = () => {
     if (!siraBende()) return mesaj('Sıra sende değil.');
     if (!o.tur.cekti) return mesaj('Önce ortadan ya da soldan taş al.');
@@ -581,12 +591,10 @@ function birak(s, x, y) {
   if (siraBende() && o.tur.cekti && sonTas) {
     // Son taşı ortaya fırlat: el biter
     sonuc(Motor.at(ui.benimNo, id));
-  } else if (kose < 0.9) {
+  } else if (atilacak) {
     at();
   } else if (grupId) {
     isle(grupId);
-  } else if (kose < 1.6) {
-    at();
   } else if (ustundeki) {
     isle(ustundeki);  // uymuyorsa nedenini söyler
   } else if (siraBende() && o.tur.cekti) {
