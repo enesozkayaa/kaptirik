@@ -1,5 +1,5 @@
 // =============================================================
-// Kaptırık - 3D masa (Three.js)
+// Kaptirik - 3D masa (Three.js)
 // Yeşil çuhalı masa, ahşap ıstakalar (arkalarında oyuncunun adı kazılı), rakiplerin ters taşları,
 // ortada deste ve gösterge, köşelerde atılan taşlar, ortada açılan gruplar.
 // Kendi taşlarımız ekranın altında (HTML) durur; masa her değişiklikte yeniden çizilir.

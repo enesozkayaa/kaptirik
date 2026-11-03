@@ -1,5 +1,5 @@
 // =============================================================
-// Kaptırık - sesler (hepsi o an üretilir, ses dosyası yok)
+// Kaptirik - sesler (hepsi o an üretilir, ses dosyası yok)
 // =============================================================
 
 const Ses = (() => {

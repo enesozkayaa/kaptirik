@@ -1,5 +1,5 @@
 // =============================================================
-// Kaptırık (51 Okey) - kurallar
+// Kaptirik (51 Okey) - kurallar
 // Ekrandan bağımsız: taşlar, okey, per/seri/çift kontrolü, en iyi diziliş, işlek kontrolü.
 //
 // Taş: { id, renk: 0-3 (sarı, mavi, siyah, kırmızı), sayi: 1-13, sahte: bool, ters: bool }

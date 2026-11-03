@@ -1,12 +1,12 @@
 // =============================================================
-// Kaptırık - servis çalışanı (service worker)
+// Kaptirik - servis çalışanı (service worker)
 // Telefonda "ana ekrana ekle" için gerekli. Oyun dosyalarını telefona kaydeder:
 // internet varken her zaman en yeni dosyalar indirilir (oyun güncellenince herkes yenisini alır),
 // internet yoksa kaydedilmiş kopya açılır. Online oynamak için yine internet gerekir.
 // Oyunu güncelleyip yüklerken ONBELLEK numarasını 1 artır.
 // =============================================================
 
-const ONBELLEK = 'kaptirik-v1';
+const ONBELLEK = 'kaptirik-v2';
 const DOSYALAR = [
   './', 'index.html', 'style.css', 'kurallar.js', 'motor.js', 'ses.js', 'sahne.js', 'oyun.js',
   'manifest.webmanifest', 'ikonlar/ikon-192.png', 'ikonlar/ikon-512.png',

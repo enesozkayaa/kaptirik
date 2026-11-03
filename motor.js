@@ -1,5 +1,5 @@
 // =============================================================
-// Kaptırık - oyun motoru: sıra, hamleler, cezalar, düşerler ve botlar
+// Kaptirik - oyun motoru: sıra, hamleler, cezalar, düşerler ve botlar
 // Ekran bilmez: hamleleri kontrol edip uygular, değişince "degisti", önemli anlarda "olay" haber verir.
 //
 // Puanlar: cezalar artı, düşerler eksi yazılır. Oyun sonunda en düşük toplam kazanır.

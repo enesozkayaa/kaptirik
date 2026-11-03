@@ -1,5 +1,5 @@
 // =============================================================
-// Kaptırık - ekran: menü, ıstakam, düğmeler, süre, mesajlar ve puan tablosu
+// Kaptirik - ekran: menü, ıstakam, düğmeler, süre, mesajlar ve puan tablosu
 // Oyunun kuralları motor.js'te; burası sadece gösterir ve dokunuşları motora iletir.
 // =============================================================
 
