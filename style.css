@@ -152,12 +152,26 @@ details li { margin: 4px 0; }
 
 #atilanListe { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 12px; }
 #atilanKapat { width: 100%; }
-#elSonuTablo { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-#elSonuTablo th, #elSonuTablo td { padding: 6px; text-align: right; border-bottom: 1px solid #ffffff1a; }
-#elSonuTablo th:first-child, #elSonuTablo td:first-child { text-align: left; }
-#elSonuTablo tr.ben { background: #f6d58a22; }
-#elSonuTablo .eksi { color: #7dff9b; }
+/* El el puan tablosu */
+#elSonuTablo { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; table-layout: fixed; }
+#elSonuTablo th, #elSonuTablo td { padding: 5px 3px; text-align: center; border-bottom: 1px solid #ffffff1a; vertical-align: middle; }
+#elSonuTablo th:first-child, #elSonuTablo td:first-child { width: 42px; color: #f6d58a; font-weight: 700; }
+#elSonuTablo th { font-size: 11px; font-weight: 600; }
+#elSonuTablo th .harf {
+  display: grid; place-items: center; width: 24px; height: 24px; margin: 0 auto 2px; border-radius: 50%;
+  color: #fff; font-weight: 800; font-size: 12px; text-shadow: 0 1px 2px #0008;
+}
+#elSonuTablo th .isim { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#elSonuTablo th.ben { background: #f6d58a22; border-radius: 8px 8px 0 0; }
+#elSonuTablo td span { display: block; font-size: 11px; line-height: 1.2; }
+#elSonuTablo td b { display: block; font-size: 14px; margin-top: 1px; }
 #elSonuTablo .arti { color: #ff8a8a; }
+#elSonuTablo .eksi { color: #7dff9b; }
+#elSonuTablo .sifir { opacity: .4; }
+#elSonuTablo tr.suren td { background: #ffffff0a; }
+#elSonuTablo tr.suren td.elNo::after { content: ' ⏳'; font-size: 10px; }
+#elSonuTablo .toplamSatir td { border-top: 2px solid #f6d58a66; border-bottom: 0; padding-top: 8px; }
+#elSonuTablo .toplamSatir td b { font-size: 15px; color: #f6d58a; white-space: nowrap; }
 #elSonuDetay ul { font-size: 13px; padding-left: 16px; margin: 0; }
 .listeler { display: flex; gap: 10px; }
 .liste { flex: 1; min-width: 0; background: #ffffff0d; border-radius: 10px; padding: 8px; }

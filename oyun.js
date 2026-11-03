@@ -699,21 +699,41 @@ function olay(tip, v) {
 // ---------- Puanlar: cezalar ve düşerler ayrı ayrı ----------
 const toplamla = (liste, isaret) => liste.filter(g => Math.sign(g.puan) === isaret).reduce((a, g) => a + g.puan, 0);
 
-function puanTablosuHtml(kayitSec, toplamSec) {
+// El el puan tablosu: her satır bir el, her sütun bir oyuncu.
+// Hücrede o elde yediği ceza (kırmızı), aldığı düşer (yeşil) ve o ana kadarki toplamı (kalın) yazar.
+function elTablosuHtml() {
   const o = Masa.oyun;
-  const satirlar = o.oyuncular.map((p, i) => ({ p, i, kayit: kayitSec(p), toplam: toplamSec(p) }))
-    .sort((a, b) => a.toplam - b.toplam);
-  const tablo = '<tr><th></th><th>Ceza</th><th>Düşer</th><th>Toplam</th></tr>'
-    + satirlar.map((s, k) => `<tr class="${s.i === ui.benimNo ? 'ben' : ''}"><td>${k + 1}. ${guvenli(s.p.ad)}</td>`
-      + `<td class="arti">${toplamla(s.kayit, 1) ? '+' + toplamla(s.kayit, 1) : '–'}</td>`
-      + `<td class="eksi">${toplamla(s.kayit, -1) || '–'}</td><td><b>${s.toplam}</b></td></tr>`).join('');
+  const oyuncular = o.oyuncular.map((p, i) => ({ p, i }));
+  const bas = '<tr><th>El</th>' + oyuncular.map(({ p, i }) => `<th class="${i === ui.benimNo ? 'ben' : ''}">`
+    + `<span class="harf" style="background:${KOLTUK_RENKLERI[i]}">${guvenli([...(p.ad.trim().split(/\s+/).at(-1) || '?')][0].toLocaleUpperCase('tr'))}</span>`
+    + `<span class="isim">${guvenli(p.ad)}</span></th>`).join('') + '</tr>';
+  const birikim = oyuncular.map(() => 0);
+  let govde = '';
+  for (let el = 1; el <= o.elNo; el++) {
+    govde += `<tr${el === o.elNo && o.asama === 'oyun' ? ' class="suren"' : ''}><td class="elNo">${el}</td>` + oyuncular.map(({ p }, k) => {
+      const kayit = p.gecmis.filter(g => g.el === el);
+      const ceza = toplamla(kayit, 1), duser = toplamla(kayit, -1);
+      birikim[k] += ceza + duser;
+      return `<td>${ceza ? `<span class="arti">+${ceza}</span>` : ''}${duser ? `<span class="eksi">${duser}</span>` : ''}`
+        + `${!ceza && !duser ? '<span class="sifir">0</span>' : ''}<b>${birikim[k]}</b></td>`;
+    }).join('') + '</tr>';
+  }
+  // En düşük toplam önde: 👑
+  const enAz = Math.min(...birikim);
+  const son = '<tr class="toplamSatir"><td>Toplam</td>' + birikim.map(b => `<td><b>${b === enAz ? '👑 ' : ''}${b}</b></td>`).join('') + '</tr>';
+  return `<thead>${bas}</thead><tbody>${govde}${son}</tbody>`;
+}
+
+// Ceza ve düşerlerin nedenleri (iki ayrı liste)
+function puanTablosuHtml(kayitSec) {
+  const o = Masa.oyun;
   const hepsi = o.oyuncular.flatMap(kayitSec);
   const liste = (isaret, bos) => {
     const l = hepsi.filter(g => Math.sign(g.puan) === isaret).reverse();
     return l.length ? `<ul>${l.map(g => `<li><b>${g.puan > 0 ? '+' : ''}${g.puan}</b> ${guvenli(g.neden)}${o.ayar.elSayisi > 1 ? ` <small>(el ${g.el})</small>` : ''}</li>`).join('')}</ul>` : `<p>${bos}</p>`;
   };
   return {
-    tablo,
+    tablo: elTablosuHtml(),
     detay: `<div class="listeler"><div class="liste cezalar"><h3>🔺 Cezalar</h3>${liste(1, 'Ceza yok.')}</div>`
       + `<div class="liste duserler"><h3>🔻 Düşerler</h3>${liste(-1, 'Düşer yok.')}</div></div>`,
   };
@@ -725,7 +745,7 @@ function elSonuGoster(son) {
   const baslik = s.tip === 'deste' ? '🀫 Deste bitti' : `🏁 ${guvenli(o.oyuncular[s.no].ad)} ${guvenli(s.neden)}`;
   const kazanan = [...o.oyuncular].sort((a, b) => a.toplam - b.toplam)[0];
   $('elSonuBaslik').innerHTML = son ? `🏆 ${guvenli(kazanan.ad)} kazandı!` : baslik;
-  const h = son ? puanTablosuHtml(p => p.gecmis, p => p.toplam) : puanTablosuHtml(p => p.gecmis.filter(g => g.el === o.elNo), p => p.toplam);
+  const h = son ? puanTablosuHtml(p => p.gecmis) : puanTablosuHtml(p => p.gecmis.filter(g => g.el === o.elNo));
   $('elSonuTablo').innerHTML = h.tablo;
   $('elSonuDetay').innerHTML = h.detay;
   $('sonrakiElBtn').textContent = son ? 'Ana menü'
@@ -737,7 +757,7 @@ function elSonuGoster(son) {
 function puanTablosu() {
   const o = Masa.oyun;
   $('elSonuBaslik').textContent = `📊 Puanlar (El ${o.elNo}/${o.ayar.elSayisi})`;
-  const h = puanTablosuHtml(p => p.gecmis, anlikPuan);
+  const h = puanTablosuHtml(p => p.gecmis);
   $('elSonuTablo').innerHTML = h.tablo;
   $('elSonuDetay').innerHTML = h.detay;
   $('sonrakiElBtn').textContent = 'Kapat';
