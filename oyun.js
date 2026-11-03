@@ -535,13 +535,14 @@ function surukleKur() {
   document.addEventListener('pointercancel', bitir);
 }
 
-// Bırakılan nokta atma köşesine (sağ alt) yakın mı?
-function atmaYerindeMi(x, y) {
+// Bırakılan noktanın atma köşesine (sağ alt) uzaklığı; köşedeki yığının üstündeyse 0
+function koseUzakligi(x, y) {
   const n = Sahne.noktada(x, y);
-  if (n.tik?.tur === 'atilan' && n.tik.koltuk === 0) return true;
+  if (n.tik?.tur === 'atilan' && n.tik.koltuk === 0) return 0;
   const [kx, kz] = Sahne.KOSE[0];
-  return Math.hypot(n.x - kx, n.z - kz) < 1.4;
+  return Math.hypot(n.x - kx, n.z - kz);
 }
+const atmaYerindeMi = (x, y) => koseUzakligi(x, y) < 1.6;
 
 function birak(s, x, y) {
   const o = Motor.oyun;
@@ -559,22 +560,34 @@ function birak(s, x, y) {
   if (!ust || ust.closest('#alt, #ust')) return;  // ıstaka dışı ama masada değil: geri döner
   const n = Sahne.noktada(x, y);
   const sonTas = benim().el.length === 1;
-  // İşlenecek grup: tam üstüne bırakıldıysa o; değilse taşın uyduğu en yakın grup (parmak tam isabet etmeyebilir)
+  // Öncelik: köşeye yakınsa at; değilse taşın uyduğu gruba (üstündeki ya da en yakın) işle.
+  // Köşenin yanındaki rakip gruplarına yanlışlıkla işlenmesin diye köşe önce gelir.
   const t = tasBul(id);
   const uyar = gid => K.isleme(o.masa.find(g => g.id === gid), t, o.okey);
   const ustundeki = n.tik?.tur === 'grup' ? n.tik.id : null;
   const yakin = Sahne.yakinGruplar(n.x, n.z, 1.1).find(uyar);
-  const grupId = ustundeki && uyar(ustundeki) ? ustundeki : (!atmaYerindeMi(x, y) && yakin) || null;
-  if (siraBende() && o.tur.cekti && sonTas) {
-    // Son taşı ortaya fırlat: el biter
-    sonuc(Motor.at(ui.benimNo, id));
-  } else if (grupId || ustundeki) {
-    if (!siraBende()) return mesaj('Sıra sende değil.');
-    sonuc(hamle(() => Motor.isle(ui.benimNo, id, grupId ?? ustundeki)));
-  } else if (atmaYerindeMi(x, y)) {
+  const grupId = ustundeki && uyar(ustundeki) ? ustundeki : yakin || null;
+  const kose = koseUzakligi(x, y);
+  const at = () => {
     if (!siraBende()) return mesaj('Sıra sende değil.');
     if (!o.tur.cekti) return mesaj('Önce ortadan ya da soldan taş al.');
     sonuc(Motor.at(ui.benimNo, id));
+  };
+  const isle = gid => {
+    if (!siraBende()) return mesaj('Sıra sende değil.');
+    sonuc(hamle(() => Motor.isle(ui.benimNo, id, gid)));
+  };
+  if (siraBende() && o.tur.cekti && sonTas) {
+    // Son taşı ortaya fırlat: el biter
+    sonuc(Motor.at(ui.benimNo, id));
+  } else if (kose < 0.9) {
+    at();
+  } else if (grupId) {
+    isle(grupId);
+  } else if (kose < 1.6) {
+    at();
+  } else if (ustundeki) {
+    isle(ustundeki);  // uymuyorsa nedenini söyler
   } else if (siraBende() && o.tur.cekti) {
     mesaj('Atmak için taşı sağ alttaki yeşil halkaya bırak.');
   }

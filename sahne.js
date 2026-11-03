@@ -55,8 +55,7 @@ const Sahne = (() => {
       masadaBasildi = false;
     });
     renderer.setAnimationLoop(() => {
-      kamera.position.copy(bakis.konum);
-      kamera.lookAt(bakis.hedef);
+      kameraGuncelle();
       renderer.render(sahne, kamera);
     });
   }
@@ -343,7 +342,7 @@ const Sahne = (() => {
     // benimkiler bana doğru okunur, karşıdakininkiler bana ters, yandakilerinki yan görünür.
     // Alan her koltuk için aynı tanımlanır ("sahibi aşağıda oturuyormuş gibi") ve koltuğun yönüne döndürülür.
     // Alanlar fırıldak gibi kaydırılmıştır, birbirine binmez.
-    const ALAN = { x0: -2.9, x1: 0.95, z0: 1.05, satir: 0.52 };
+    const ALAN = { x0: -2.55, x1: 0.95, z0: 1.05, satir: 0.52 };  // köşelerdeki atılan taşlardan uzak dursun
     const DONUS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];  // alt, sağ, üst, sol
     const M = 1.45;  // açılan taşlar büyük olsun, okunsun
     const AR = TAS_G * M + 0.01;
@@ -402,6 +401,7 @@ const Sahne = (() => {
   }
 
   function tikla(e) {
+    kameraGuncelle();
     const kutu = renderer.domElement.getBoundingClientRect();
     fare.set(((e.clientX - kutu.left) / kutu.width) * 2 - 1, -((e.clientY - kutu.top) / kutu.height) * 2 + 1);
     isin.setFromCamera(fare, kamera);
@@ -422,8 +422,15 @@ const Sahne = (() => {
       .filter(k => k.d <= sinir).sort((a, b) => a.d - b.d).map(k => k.id);
   }
 
+  function kameraGuncelle() {
+    kamera.position.copy(bakis.konum);
+    kamera.lookAt(bakis.hedef);
+    kamera.updateMatrixWorld();
+  }
+
   // Masadaki bir yerin ekrandaki konumu (taş uçurma animasyonu için)
   function ekranda(yer) {
+    kameraGuncelle();
     const v = yer === 'deste' ? DESTE.clone().setY(0.3) : V(KOSE[yer][0], 0.1, KOSE[yer][1]);
     v.project(kamera);
     const kutu = renderer.domElement.getBoundingClientRect();
@@ -432,6 +439,7 @@ const Sahne = (() => {
 
   // Ekrandaki noktada ne var? (sürüklenen taş bırakılınca) { tik, x, z }
   function noktada(cx, cy) {
+    kameraGuncelle();
     const kutu = renderer.domElement.getBoundingClientRect();
     fare.set(((cx - kutu.left) / kutu.width) * 2 - 1, -((cy - kutu.top) / kutu.height) * 2 + 1);
     isin.setFromCamera(fare, kamera);
