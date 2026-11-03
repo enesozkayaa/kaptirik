@@ -293,7 +293,7 @@ function ciz() {
 
   // Üst bilgi
   $('elBilgi').textContent = `El ${o.elNo}/${o.ayar.elSayisi}`;
-  $('esik').innerHTML = `Açmak için: <b>${Masa.gereken()}+</b>${Masa.kimseAcmadi() ? '' : ' · çift: ' + (Masa.gereken() + (Masa.gereken() % 2)) + '+'}`;
+  $('esik').innerHTML = `Açmak için: <b>${Masa.gereken()}+</b>`;
 
   // Oyuncu kartları (rakipler ıstakalarının yanında, ben altta)
   [0, 1, 2, 3].forEach(k => {

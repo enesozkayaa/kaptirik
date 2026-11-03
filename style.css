@@ -65,7 +65,7 @@ details li { margin: 4px 0; }
   background: radial-gradient(circle at 35% 30%, #fff6, transparent 55%), var(--renk); color: #fff; font-weight: 800; font-size: 15px;
   text-shadow: 0 1px 2px #0009; box-shadow: inset 0 -3px 0 #0003, 0 0 0 2px #ffffff40;
 }
-.koltuk .bilgi { display: flex; flex-direction: column; line-height: 1.15; }
+.koltuk .bilgi { display: flex; flex-direction: column; align-items: center; text-align: center; line-height: 1.15; }
 .koltuk .bilgi b { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
 .koltuk .puan { font-size: 12px; font-weight: 700; color: #f6d58a; }
 .koltuk .puan.eksi { color: #7dff9b; }
