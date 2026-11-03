@@ -264,3 +264,8 @@ details li { margin: 4px 0; }
 #kantinHesap tr.ben { background: #f6d58a1a; }
 #kantinHesap tr.toplam td { border-bottom: 0; color: #f6d58a; }
 #kantinHesap .nokta { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+.hesapKutusu {
+  margin: 0 0 12px; padding: 12px; border-radius: 12px; text-align: center; font-size: 15px; line-height: 1.5;
+  background: linear-gradient(#3a2a12, #2a1d0c); border: 1px solid #f6d58a66;
+}
+.hesapKutusu b { color: #f6d58a; font-size: 18px; }

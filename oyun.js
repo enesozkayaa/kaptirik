@@ -645,7 +645,7 @@ function masaDokunus(h) {
     // Kendi çayından bir yudum / tostundan bir ısırık
     const kalan = o.ikram?.[ui.benimNo]?.[h.ne];
     if (kalan > 0) Masa.ikram(ui.benimNo, h.ne, 'tuket');
-    else mesaj(`${KANTIN[h.ne].simge} Bitti. 🛒 Kantinden yenisini söyle.`);
+    else mesaj(`${KANTIN[h.ne].simge} Bitti.`);
   }
 }
 
@@ -658,7 +658,10 @@ function atilanlariGoster(no) {
 // ---------- Kantin (süs) ----------
 // Fiyatlar motordakilerle aynı (söyleyenin hesabına borç yazılır)
 const KANTIN = {
-  cay: { ad: 'Çay', simge: '☕', aciklama: 'İnce belli bardakta, taze demlenmiş', fiyat: 25 },
+  cay: { ad: 'Çay', simge: '🫖', aciklama: 'İnce belli bardakta, taze demlenmiş', fiyat: 25 },
+  kahve: { ad: 'Türk kahvesi', simge: '☕', aciklama: 'Orta şekerli, köpüklü', fiyat: 40 },
+  su: { ad: 'Su', simge: '💧', aciklama: 'Soğuk, küçük şişe', fiyat: 15 },
+  simit: { ad: 'Simit', simge: '🥯', aciklama: 'Susamlı, çıtır', fiyat: 20 },
   tost: { ad: 'Kaşarlı tost', simge: '🥪', aciklama: 'Bol kaşarlı, ızgarada', fiyat: 150 },
 };
 function kantiniAc() {
@@ -728,9 +731,9 @@ function olay(tip, v) {
     const u = KANTIN[v.ne];
     if (v.islem === 'siparis') {
       Ses.cayGeldi();
-      mesaj(v.no === ui.benimNo ? `${u.simge} ${u.ad} geldi (${u.fiyat} TL hesabına yazıldı). Afiyet olsun! Dokundukça ${v.ne === 'cay' ? 'içersin' : 'yersin'}.` : `${u.simge} ${ad(v.no)} ${u.ad.toLocaleLowerCase('tr')} söyledi`);
+      mesaj(v.no === ui.benimNo ? `${u.simge} ${u.ad} geldi, afiyet olsun!` : `${u.simge} ${ad(v.no)} ${u.ad.toLocaleLowerCase('tr')} söyledi`);
     } else {
-      Ses[v.ne === 'cay' ? 'yudum' : 'isirik']();
+      Ses[['cay', 'kahve', 'su'].includes(v.ne) ? 'yudum' : 'isirik']();
     }
   } else if (tip === 'uzakta') {
     mesaj(v.no === ui.benimNo
@@ -806,11 +809,23 @@ function elSonuGoster(son) {
   $('elSonuBaslik').innerHTML = son ? `🏆 ${guvenli(kazanan.ad)} kazandı!` : baslik;
   const h = son ? puanTablosuHtml(p => p.gecmis) : puanTablosuHtml(p => p.gecmis.filter(g => g.el === o.elNo));
   $('elSonuTablo').innerHTML = h.tablo;
-  $('elSonuDetay').innerHTML = h.detay;
+  $('elSonuDetay').innerHTML = (son ? kantinHesabiYazisi() : '') + h.detay;
   $('sonrakiElBtn').textContent = son ? 'Ana menü'
     : Masa === Motor ? `Sonraki el (${o.elNo + 1}/${o.ayar.elSayisi})` : 'Tamam (yeni eli oda sahibi başlatır)';
   $('elSonu').hidden = false;
   if (son) Ses.kazanma();
+}
+
+// Oyun sonu: yenilen (puanı en yüksek olan) masadaki herkesin kantin hesabını öder
+function kantinHesabiYazisi() {
+  const o = Masa.oyun;
+  const toplam = o.oyuncular.reduce((a, p, i) => a + (o.ikram?.[i]?.borc ?? 0), 0);
+  if (!toplam) return '';
+  const yenilen = o.oyuncular.reduce((en, p, i) => (p.toplam > o.oyuncular[en].toplam ? i : en), 0);
+  const metin = yenilen === ui.benimNo
+    ? `😅 Yenildiğin için masadaki herkesin hesabını sen ödüyorsun!<br>Toplam borcunuz: <b>${toplam} TL</b>. Bir dahakine kaptırma!`
+    : `🧾 ${guvenli(o.oyuncular[yenilen].ad)} yenildi, kantin hesabı ondan!<br>Toplam borç: <b>${toplam} TL</b>. Afiyet olsun 😄`;
+  return `<div class="hesapKutusu">${metin}</div>`;
 }
 
 function puanTablosu() {

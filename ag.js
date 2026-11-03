@@ -39,7 +39,7 @@ const Uzak = {
 
 const Ag = (() => {
   // Online kısmı her değiştiğinde 1 artır: eski sürümle gelen oyuncu odaya alınmaz
-  const SURUM = 3;
+  const SURUM = 4;
   const ODA_ONEKI = 'kaptirik-oda-';
   const KOD_HARFLERI = 'ABCDEFGHJKLMNPRSTUVYZ23456789';  // karışabilecek O/0, I/1 yok
   const KOD_UZUNLUK = 5;

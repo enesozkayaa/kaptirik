@@ -364,7 +364,13 @@ const Motor = (() => {
   // ---------- Kantin (süs) ----------
   // Çay, tost...: söyleyince dolu gelir; dokundukça azalır (içilir / ısırılır). Oyuna etkisi yok.
   // Söyleyenin kantin hesabına (borç) fiyatı yazılır.
-  const IKRAMLAR = { cay: { dolu: 4, fiyat: 25 }, tost: { dolu: 4, fiyat: 150 } };  // dolu: kaç yudum / ısırık, fiyat: TL
+  const IKRAMLAR = {  // dolu: kaç yudum / ısırık, fiyat: TL
+    cay: { dolu: 4, fiyat: 25 },
+    kahve: { dolu: 3, fiyat: 40 },
+    su: { dolu: 4, fiyat: 15 },
+    simit: { dolu: 4, fiyat: 20 },
+    tost: { dolu: 4, fiyat: 150 },
+  };
   function ikram(no, ne, islem) {
     const k = o?.ikram?.[no];
     if (!k || !(ne in IKRAMLAR)) return hata('Kantinde bu yok.');
@@ -538,7 +544,8 @@ const Motor = (() => {
     // Botlar da arada bir çay söyleyip içer, tost ısırır (sadece süs)
     const k = o.ikram[no];
     if (Math.random() < 0.25) {
-      const ne = Math.random() < 0.7 ? 'cay' : 'tost';
+      const r = Math.random();
+      const ne = r < 0.5 ? 'cay' : r < 0.65 ? 'su' : r < 0.8 ? 'simit' : r < 0.9 ? 'kahve' : 'tost';
       ikram(no, ne, k[ne] > 0 ? 'tuket' : 'siparis');
     }
     // Oyuncu geri gelirse (bot değilse artık) bot hemen bırakır

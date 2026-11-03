@@ -247,6 +247,104 @@ const Sahne = (() => {
     return grup;
   }
 
+  // Türk kahvesi: tabaklı küçük fincan, köpüklü yüzey azaldıkça iner
+  function kahveFincani(kalan) {
+    const grup = new THREE.Group();
+    const tabak = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.018, 28), porselen);
+    tabak.position.y = 0.009;
+    const profil = [[0.045, 0], [0.055, 0.01], [0.07, 0.05], [0.075, 0.1], [0.072, 0.1]].map(([r, y]) => new THREE.Vector2(r, y));
+    const fincan = new THREE.Mesh(new THREE.LatheGeometry(profil, 28), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, side: THREE.DoubleSide }));
+    fincan.position.y = 0.018;
+    const kulp = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.007, 6, 14), porselen);
+    kulp.position.set(0.085, 0.07, 0);
+    const desen = new THREE.Mesh(new THREE.TorusGeometry(0.073, 0.004, 6, 28), kirmizi);
+    desen.rotation.x = -Math.PI / 2;
+    desen.position.y = 0.105;
+    grup.add(tabak, fincan, kulp, desen);
+    // Kahve yüzeyi (köpüklü), bitince dipte telve
+    const y = kalan > 0 ? 0.03 + 0.06 * (kalan / 3) : 0.022;
+    const yuzey = new THREE.Mesh(new THREE.CircleGeometry(0.066, 24), new THREE.MeshStandardMaterial({ color: kalan > 0 ? 0x8a5a33 : 0x2b170b, roughness: 0.9 }));
+    yuzey.rotation.x = -Math.PI / 2;
+    yuzey.position.y = 0.018 + y;
+    grup.add(yuzey);
+    grup.traverse(m => (m.castShadow = true));
+    return grup;
+  }
+
+  // Küçük su şişesi: su azaldıkça iner
+  function suSisesi(kalan) {
+    const grup = new THREE.Group();
+    const sise = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.26, 20, 1, true), new THREE.MeshStandardMaterial({ color: 0xdff4ff, transparent: true, opacity: 0.3, roughness: 0.05, side: THREE.DoubleSide, depthWrite: false }));
+    sise.position.y = 0.13;
+    const boyun = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.055, 0.06, 20, 1, true), sise.material);
+    boyun.position.y = 0.29;
+    const kapak = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.03, 16), new THREE.MeshStandardMaterial({ color: 0x1f6feb, roughness: 0.4 }));
+    kapak.position.y = 0.335;
+    const etiket = new THREE.Mesh(new THREE.CylinderGeometry(0.057, 0.057, 0.07, 20, 1, true), new THREE.MeshStandardMaterial({ color: 0x1f6feb, roughness: 0.6 }));
+    etiket.position.y = 0.13;
+    grup.add(sise, boyun, kapak, etiket);
+    if (kalan > 0) {
+      const h = 0.24 * (kalan / DOLU);
+      const su = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, h, 20), new THREE.MeshStandardMaterial({ color: 0x8fd3ff, transparent: true, opacity: 0.55, roughness: 0.1 }));
+      su.position.y = 0.005 + h / 2;
+      grup.add(su);
+    }
+    return grup;
+  }
+
+  // Susamlı simit: her ısırıkta halkanın bir parçası eksilir
+  let susamMalz;
+  function simit(kalan) {
+    const grup = new THREE.Group();
+    const pecete = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.004, 0.3), new THREE.MeshStandardMaterial({ color: 0xf2efe6, roughness: 0.9 }));
+    pecete.position.y = 0.002;
+    grup.add(pecete);
+    if (kalan > 0) {
+      const yay = 2 * Math.PI * (kalan / DOLU);
+      const halka = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.035, 10, 32, yay), new THREE.MeshStandardMaterial({ color: 0xa8571c, roughness: 0.7 }));
+      halka.rotation.x = -Math.PI / 2;
+      halka.position.y = 0.04;
+      halka.castShadow = true;
+      grup.add(halka);
+      susamMalz ??= new THREE.MeshStandardMaterial({ color: 0xf6e7c1, roughness: 0.8 });
+      for (let i = 0; i < 40 * (kalan / DOLU); i++) {
+        const a = (i / 40) * 2 * Math.PI * 0.999 + Math.sin(i * 12.9) * 0.05;
+        const b = Math.sin(i * 7.7) * 1.2;  // halkanın kesitinde üst yüze yakın
+        const susam = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.004, 0.014), susamMalz);
+        susam.position.set(Math.cos(a) * (0.1 + Math.sin(b) * 0.03), 0.04 + Math.cos(b) * 0.033, -Math.sin(a) * (0.1 + Math.sin(b) * 0.03));
+        susam.rotation.y = a;
+        grup.add(susam);
+      }
+    } else {
+      for (let i = 0; i < 6; i++) {  // susam kırıntısı
+        const k = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.004, 0.014), susamMalz ?? porselen);
+        k.position.set(Math.sin(i * 3.1) * 0.08, 0.006, Math.cos(i * 2.3) * 0.08);
+        grup.add(k);
+      }
+    }
+    return grup;
+  }
+
+  // Oyuncunun yanındaki küçük ahşap sehpa (tepsi gibi kenarlı)
+  const SEHPA_Y = 0.16;
+  const SEHPA_YERI = { tost: [0, 0.02], cay: [-0.36, -0.22], kahve: [0.36, -0.22], su: [0.4, 0.22], simit: [-0.36, 0.24] };
+  let sehpaMalz;
+  function sehpa() {
+    sehpaMalz ??= new THREE.MeshStandardMaterial({ map: ahsapDokusu(256, 256), roughness: 0.55 });
+    const grup = new THREE.Group();
+    const ust = new THREE.Mesh(new THREE.CylinderGeometry(0.66, 0.62, 0.05, 40), sehpaMalz);
+    ust.position.y = SEHPA_Y - 0.025;
+    const kenar = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.025, 8, 40), sehpaMalz);
+    kenar.rotation.x = -Math.PI / 2;
+    kenar.position.y = SEHPA_Y;
+    const ayak = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, SEHPA_Y, 12), sehpaMalz);
+    ayak.position.y = SEHPA_Y / 2 - 0.05;
+    ust.castShadow = ust.receiveShadow = true;
+    grup.add(ust, kenar, ayak);
+    return grup;
+  }
+  const IKRAM_CIZ = { cay: cayBardagi, kahve: kahveFincani, su: suSisesi, simit, tost: tostTabagi };
+
   // ---------- Istaka ----------
   // Masanın ortasına bakan dik ahşap pano; arkasında (sahibinin tarafında) iki üçgen destek ayağı.
   // Taşlar panonun arkasında kalır, rakibin taşları görünmez. Panonun ön yüzüne oyunun adı (KAPTİRİK) kazılı.
@@ -327,6 +425,8 @@ const Sahne = (() => {
   // Ben sağ alt köşeye atarım (sağdaki oradan alır); soldaki sol alt köşeye atar, ben oradan alırım.
   const KOSE = [[3.15, 3.15], [3.15, -3.15], [-3.15, -3.15], [-3.15, 3.15]];
   const DONUS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];  // koltuğun önündeki alanı o koltuğa çevirir: alt, sağ, üst, sol
+  // Koltuğun yerel konumunu masadaki gerçek konuma çevir
+  const yereDon = (x, z, a) => ({ x: x * Math.cos(a) + z * Math.sin(a), z: -x * Math.sin(a) + z * Math.cos(a) });
   const DESTE = V(-0.42, 0, 0);
   const BUYUK = 1.6;  // deste ve gösterge taşları
 
@@ -397,15 +497,22 @@ const Sahne = (() => {
       dinamik.add(gost);
     }
 
-    // Kantinden gelenler: her oyuncunun önünde, açtığı grupların sağındaki boşlukta (köşelere değmeden)
+    // Kantinden gelenler: her oyuncunun ıstakasının sağındaki sehpada (masadaki taşları kapatmasın).
+    // Karşıdakinin sehpası da kendi sağında, yani çapraz durur. Yatay ekranda benimki masanın sağ dışında.
     g.koltuklar.forEach((k, koltuk) => {
+      const urunler = Object.keys(SEHPA_YERI).filter(ne => k.ikram?.[ne] !== undefined);
+      if (!urunler.length) return;
       const kap = new THREE.Group();
+      const benimYatay = koltuk === 0 && kamera.aspect > 1;
+      const yer = benimYatay ? { x: 5.75, z: 2.7 } : yereDon(2.95, 4.6, DONUS[koltuk]);
+      kap.position.set(yer.x, 0, yer.z);
       kap.rotation.y = DONUS[koltuk];
-      [['cay', cayBardagi, 1.05, 2.8], ['tost', tostTabagi, 1.75, 2.45]].forEach(([ne, yap, x, z]) => {
-        const kalan = k.ikram?.[ne];
-        if (kalan === undefined) return;
-        const nesne = yap(kalan);
-        nesne.position.set(x, 0, z);
+      kap.add(sehpa());
+      urunler.forEach(ne => {
+        const nesne = IKRAM_CIZ[ne](k.ikram[ne]);
+        const [x, z] = SEHPA_YERI[ne];
+        nesne.scale.setScalar(0.72);
+        nesne.position.set(x, SEHPA_Y, z);
         nesne.rotation.y = 0.4;
         nesne.traverse(m => (m.userData.tik = { tur: 'ikram', koltuk, ne }));
         tiklanabilir.push(nesne);
@@ -447,7 +554,6 @@ const Sahne = (() => {
     const ALAN = { x0: -2.0, x1: 0.75, z0: 1.05, zSon: 3.1 };  // köşelerdeki atılan taşlardan uzak dursun
     // (DONUS: koltukların yönü, aşağıda tanımlı; kantin de kullanıyor)
     const M = 1.45;  // açılan taşlar büyük olsun, okunsun
-    const yereDon = (x, z, a) => ({ x: x * Math.cos(a) + z * Math.sin(a), z: -x * Math.sin(a) + z * Math.cos(a) });
     const koltugaGore = [[], [], [], []];
     g.masa.forEach(gr => koltugaGore[g.koltukNo(gr.sahip)].push(gr));
     koltugaGore.forEach((liste, koltuk) => {
