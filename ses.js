@@ -125,6 +125,7 @@ const Ses = (() => {
   const sesler = {
     // Istakaya taş koyma: kısa bir kayma + ıstakanın ahşabına tok "tak" + yanındaki taşa değme "çıt"ı
     secim: () => {
+      if (parca(TEK, 0, 0.75)) return;  // gerçek taş kaydı (hazır değilse üretilen ses)
       kayma(0, 0.04, 0.025);
       vurus(0.025, 0.42, 0.75);
       vurus(0.025 + oyna(0.03, 0.05), 0.14, 0.1, 1.25, false);
