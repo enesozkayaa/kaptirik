@@ -47,12 +47,13 @@ const Ses = (() => {
     k.stop(t + sure + 0.02);
   }
 
-  // Kısa çınlama
+  // Kısa çınlama (çok kısa bir yükselişle başlar, cızırtı yapmasın)
   function tini(t, f, sure, seviye) {
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.frequency.value = f;
-    g.gain.setValueAtTime(seviye, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(seviye, t + 0.0008);
     g.gain.exponentialRampToValueAtTime(0.0001, t + sure);
     o.connect(g);
     g.connect(ana);
@@ -60,19 +61,25 @@ const Ses = (() => {
     o.stop(t + sure + 0.02);
   }
 
-  // Tek taş vuruşu. guc: 0-1 (atış sert, dizme hafif), masa: ahşap gövde sesi ne kadar
-  function vurus(gecikme = 0, guc = 0.6, masa = 0.6) {
+  // Tek taş vuruşu. guc: 0-1 (atış sert, dizme hafif), masa: ahşap gövde sesi ne kadar,
+  // tiz: taş taşa çarpınca ses biraz daha incedir (>1).
+  // Okey taşı kalın, sert bir plastik bloktur: sesi cam gibi çınlamaz, kısa ve tok bir "tak" çıkarır.
+  // Çubuk gibi titreşen bir cismin tınıları (1 : 2.76 : 5.4 oranında, çok çabuk sönen) + çarpma anının
+  // kuru "çıt"ı + ıstakanın / masanın ahşap gövdesi. Sert vuruşta taş bir kez hafifçe seker.
+  function vurus(gecikme = 0, guc = 0.6, masa = 0.6, tiz = 1, sekme = true) {
     motor();
     const t = ctx.currentTime + gecikme;
-    const k = oyna(0.94, 1.06);
-    // Taşın kendi çınlaması (sert plastik: tiz, uyumsuz tınılar, çok çabuk söner)
-    [[2350, 0.035, 0.09], [3720, 0.025, 0.06], [5480, 0.018, 0.04], [7900, 0.012, 0.025]]
-      .forEach(([f, sure, sev]) => tini(t, f * k, sure * oyna(0.8, 1.2), sev * guc));
-    // Çarpmanın ilk "tık"ı
-    hisirti(t, { sure: 0.012, tip: 'highpass', frekans: 3500, seviye: 0.5 * guc });
-    // Masanın tok sesi
-    hisirti(t, { sure: 0.07, tip: 'bandpass', frekans: 300 * k, q: 2.5, seviye: 0.9 * guc * masa, atak: 0.002 });
-    tini(t, 140 * k, 0.06, 0.15 * guc * masa);
+    const k = oyna(0.92, 1.08) * tiz;
+    const f0 = 1180 * k;
+    [[1, 0.028, 0.2], [1.62, 0.018, 0.07], [2.76, 0.014, 0.1], [5.4, 0.007, 0.05]]
+      .forEach(([m, sure, sev]) => tini(t, f0 * m, sure * oyna(0.8, 1.25), sev * guc));
+    // Çarpma anı: çok kısa, kuru bir çıt
+    hisirti(t, { sure: 0.007, tip: 'bandpass', frekans: 3000 * k, q: 0.8, seviye: 0.8 * guc });
+    // Ahşabın tok sesi (ıstaka / masa)
+    hisirti(t, { sure: 0.05, tip: 'bandpass', frekans: oyna(480, 620), q: 2.2, seviye: 0.7 * guc * masa, atak: 0.0015 });
+    hisirti(t, { sure: 0.035, tip: 'lowpass', frekans: 240, seviye: 0.55 * guc * masa, atak: 0.002 });
+    // Küçük sekme: aynı ses, çok kısa süre sonra ve çok daha hafif
+    if (sekme && guc > 0.35) vurus(gecikme + oyna(0.014, 0.028), guc * 0.22, masa * 0.5, tiz * 1.03, false);
   }
 
   // Taşın çuhada / ıstakada kayması
@@ -83,7 +90,12 @@ const Ses = (() => {
   }
 
   const sesler = {
-    secim: () => vurus(0, 0.25, 0.2),
+    // Istakaya taş koyma: kısa bir kayma + ıstakanın ahşabına tok "tak" + yanındaki taşa değme "çıt"ı
+    secim: () => {
+      kayma(0, 0.04, 0.025);
+      vurus(0.025, 0.42, 0.75);
+      vurus(0.025 + oyna(0.03, 0.05), 0.14, 0.1, 1.25, false);
+    },
     cek: () => {
       kayma(0, 0.14, 0.05);
       vurus(0.13, 0.45, 0.35);
@@ -92,8 +104,18 @@ const Ses = (() => {
       vurus(0, 0.85, 0.9);
       vurus(0.045, 0.2, 0.3);  // küçük sekme
     },
+    // Istakadaki taşları dizme: taşlar kümeler halinde itilir, birbirine çarpar ("tak-tak-tak ... tak-tak")
     diz: () => {
-      for (let i = 0; i < 9; i++) vurus(i * oyna(0.035, 0.05), oyna(0.2, 0.35), 0.3);
+      let z = 0;
+      for (let kume = 0; kume < 5; kume++) {
+        kayma(z, 0.06, 0.03);
+        const n = 2 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) {
+          z += oyna(0.022, 0.045);
+          vurus(z, oyna(0.28, 0.45), oyna(0.3, 0.6), oyna(1.05, 1.25));
+        }
+        z += oyna(0.07, 0.13);
+      }
     },
     karistir: () => {
       for (let i = 0; i < 14; i++) kayma(i * 0.07, 0.18, 0.05);
