@@ -328,3 +328,4 @@ details li { margin: 4px 0; }
 .lobiKoltuk.sag { grid-area: 2 / 3; }
 .lobiKoltuk.alt { grid-area: 3 / 2; }
 .lobiIpucu { display: block; opacity: .7; margin-bottom: 6px; }
+.not a { color: inherit; }

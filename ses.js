@@ -1,5 +1,6 @@
 // =============================================================
-// Kaptirik - sesler (hepsi o an üretilir, ses dosyası yok)
+// Kaptirik - sesler (çoğu o an üretilir; taşın ıstakaya gelişi ve dağıtma gerçek kayıttan)
+// Gerçek kayıt: "Domino 2.wav" - mmaruska (freesound.org/s/182126), lisans CC BY 4.0
 // Taş sesi: sert plastik taşın ahşaba/çuhaya vuruşu. Birkaç tını (taşın kendi çınlaması),
 // çok kısa bir "tık" ve masanın tok "tak"ı birlikte çalınır; her vuruş biraz farklı olsun diye
 // frekanslar her seferinde hafifçe oynatılır.
@@ -8,6 +9,11 @@
 const Ses = (() => {
   const ANAHTAR = 'kaptirik.ses';
   let ctx = null, ana = null, acik = true, gurultu = null;
+  // Gerçek taş kaydı (ahşap masada taşlar). Yüklenene kadar ya da yüklenemezse üretilen ses çalar.
+  let kayit = null, kayitIstendi = false;
+  const TEK = [7.245, 0.12, 2.2];    // tek bir taşın "tak"ı: [başlangıç sn, süre sn, ses yüksekliği]
+  const KUME = [4.84, 0.62, 0.9];    // taşların art arda dizilişi (dağıtma)
+  const KUME2 = [0.33, 0.36, 1.6];   // daha kısa bir diziliş
   try {
     acik = localStorage.getItem(ANAHTAR) !== 'kapali';
   } catch (e) { /* açık başlar */ }
@@ -23,7 +29,34 @@ const Ses = (() => {
       for (let i = 0; i < v.length; i++) v[i] = Math.random() * 2 - 1;
     }
     if (ctx.state === 'suspended') ctx.resume();
+    if (!kayitIstendi) {
+      kayitIstendi = true;
+      fetch('sesler/tas.mp3')
+        .then(r => r.arrayBuffer())
+        .then(b => new Promise((ok, hata) => ctx.decodeAudioData(b, ok, hata)))
+        .then(b => (kayit = b))
+        .catch(() => { /* üretilen sesle devam */ });
+    }
     return ctx;
+  }
+
+  // Kayıttan bir parça çal. Her seferinde hızı biraz oynatılır (aynı ses tekrar tekrar duyulmasın).
+  // Kayıt hazır değilse false döner (çağıran üretilen sesi çalar).
+  function parca([bas, sure, seviye], gecikme = 0, guc = 1, hiz = 1) {
+    motor();
+    if (!kayit) return false;
+    const t = ctx.currentTime + gecikme;
+    const k = ctx.createBufferSource();
+    k.buffer = kayit;
+    k.playbackRate.value = hiz * oyna(0.94, 1.06);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(seviye * guc, t);
+    g.gain.setValueAtTime(seviye * guc, t + sure * 0.8);
+    g.gain.linearRampToValueAtTime(0, t + sure);
+    k.connect(g);
+    g.connect(ana);
+    k.start(t, bas, sure + 0.02);
+    return true;
   }
 
   const oyna = (a, b) => a + Math.random() * (b - a);
@@ -96,9 +129,10 @@ const Ses = (() => {
       vurus(0.025, 0.42, 0.75);
       vurus(0.025 + oyna(0.03, 0.05), 0.14, 0.1, 1.25, false);
     },
-    cek: () => {
-      kayma(0, 0.14, 0.05);
-      vurus(0.13, 0.45, 0.35);
+    // Çekilen taş ıstakaya gelince: gerçek taş sesi. gecikme: taş uçarken ıstakaya varınca çalsın
+    cek: (gecikme = 0) => {
+      kayma(Math.max(0, gecikme - 0.13), 0.14, 0.05);
+      if (!parca(TEK, gecikme, 1)) vurus(gecikme, 0.45, 0.35);
     },
     at: () => {
       vurus(0, 0.85, 0.9);
@@ -117,8 +151,10 @@ const Ses = (() => {
         z += oyna(0.07, 0.13);
       }
     },
+    // El başı: taşlar karışır, sonra ıstakalara dizilir (diziliş gerçek kayıttan)
     karistir: () => {
-      for (let i = 0; i < 14; i++) kayma(i * 0.07, 0.18, 0.05);
+      for (let i = 0; i < 8; i++) kayma(i * 0.07, 0.18, 0.05);
+      if (parca(KUME, 0.45) && parca(KUME2, 1.1, 0.8)) return;
       for (let i = 0; i < 34; i++) vurus(oyna(0, 1.1), oyna(0.15, 0.45), oyna(0.2, 0.6));
     },
     // Süre azalırken saat gibi tıklama, son saniyelerde çift tık
@@ -129,13 +165,24 @@ const Ses = (() => {
       vurus(0, 0.5, 0.9);
       vurus(0.12, 0.5, 0.9);
     },
-    // Sıra sende: parmakla masaya iki kez vurma
+    // Sıra sende: kısa, net, tatlı bir "di-ding" (iki notalı zil; taş sesleriyle karışmasın)
     siraSende: () => {
       motor();
       const t = ctx.currentTime;
-      [0, 0.16].forEach(g => {
-        hisirti(t + g, { sure: 0.09, tip: 'lowpass', frekans: 420, seviye: 0.9 });
-        tini(t + g, 110, 0.08, 0.2);
+      [[0, 784], [0.14, 1175]].forEach(([g, f]) => {
+        [[1, 0.22, 0.9], [2, 0.06, 0.35], [3, 0.025, 0.2]].forEach(([m, sev, sure]) => {
+          const o = ctx.createOscillator();
+          const s = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.value = f * m;
+          s.gain.setValueAtTime(0.0001, t + g);
+          s.gain.exponentialRampToValueAtTime(sev, t + g + 0.008);
+          s.gain.exponentialRampToValueAtTime(0.0001, t + g + sure);
+          o.connect(s);
+          s.connect(ana);
+          o.start(t + g);
+          o.stop(t + g + sure + 0.05);
+        });
       });
     },
     // Açınca: taşlar masaya tek tek dizilir
@@ -209,5 +256,5 @@ const Ses = (() => {
     return acik;
   }
 
-  return { ...sesler, motor, acKapa, get acik() { return acik; } };
+  return { ...sesler, motor, acKapa, get acik() { return acik; }, get kayitHazir() { return !!kayit; } };
 })();

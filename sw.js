@@ -6,10 +6,10 @@
 // Oyunu güncelleyip yüklerken ONBELLEK numarasını 1 artır.
 // =============================================================
 
-const ONBELLEK = 'kaptirik-v56';
+const ONBELLEK = 'kaptirik-v57';
 const DOSYALAR = [
   './', 'index.html', 'style.css', 'kurallar.js', 'motor.js', 'ses.js', 'sahne.js', 'oyun.js', 'ag.js',
-  'manifest.webmanifest', 'ikonlar/ikon-192.png', 'ikonlar/ikon-512.png',
+  'manifest.webmanifest', 'sesler/tas.mp3', 'ikonlar/ikon-192.png', 'ikonlar/ikon-512.png',
 ];
 
 self.addEventListener('install', olay => {

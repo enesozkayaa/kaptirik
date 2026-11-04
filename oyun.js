@@ -816,7 +816,8 @@ function olay(tip, v) {
         : 'Sıra sende! Ortadaki desteye dokun ya da soldaki taşı al.');
     }
   } else if (tip === 'cekti') {
-    Ses.cek();
+    // Benim taşım ıstakaya uçarak gelir: ses taş vardığında çalsın
+    Ses.cek(v.no === ui.benimNo && !ui.desteCek?.basladi ? 0.4 : 0);
     // Benim çektiğim taş desteden (ya da soldan) ıstakama uçar
     const dc = ui.desteCek;
     if (v.no === ui.benimNo && v.tas && dc?.basladi && !v.yandan) {  // sadece gerçekten sürükleniyorsa (dokunuşta taş uçar)
