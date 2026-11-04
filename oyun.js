@@ -370,6 +370,42 @@ function kartlariYerlestir() {
     kart.style.left = `${Math.min(Math.max(p.x, w), innerWidth - w)}px`;
     kart.style.top = `${Math.min(Math.max(p.y, ustAlt + h), innerHeight - h)}px`;
   });
+  balonlariYerlestir();
+}
+
+// ---------- Sohbet balonu ----------
+// Yazılan mesaj, yazan oyuncunun kartının (isminin) üstünde konuşma balonu olarak 3 saniye görünür.
+const BALON_SURESI = 3000;
+const balonlar = new Map();  // oyuncu no → { el, zaman }
+function balonGoster(no, metin) {
+  if (!Masa.oyun || $('oyun').hidden) return false;
+  const eski = balonlar.get(no);
+  if (eski) {
+    clearTimeout(eski.zaman);
+    eski.el.remove();
+  }
+  const el = document.createElement('div');
+  el.className = 'balon';
+  el.textContent = metin;
+  document.body.appendChild(el);
+  const b = { el, zaman: setTimeout(() => {
+    el.classList.add('gidiyor');
+    setTimeout(() => el.remove(), 300);
+    if (balonlar.get(no) === b) balonlar.delete(no);
+  }, BALON_SURESI) };
+  balonlar.set(no, b);
+  balonlariYerlestir();
+  return true;
+}
+function balonlariYerlestir() {
+  balonlar.forEach(({ el }, no) => {
+    const kart = $(`koltuk${koltukNo(no)}`);
+    if (!kart) return;
+    const r = kart.getBoundingClientRect();
+    const yari = el.offsetWidth / 2 + 6;
+    el.style.left = `${Math.min(Math.max(r.left + r.width / 2, yari), innerWidth - yari)}px`;
+    el.style.top = `${Math.max(r.top - 8, el.offsetHeight + 4)}px`;
+  });
 }
 // Kamera kendi resize dinleyicisinde güncellenir; kartlar ondan sonra (bir sonraki karede) yerleşsin
 window.addEventListener('resize', () => setTimeout(() => Masa.oyun && ciz(), 30));  // telefon yan çevrilince sehpa yeri de değişir

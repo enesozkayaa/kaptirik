@@ -291,3 +291,17 @@ details li { margin: 4px 0; }
 #elSonuTablo .takimSatiri td { border-top: 0; padding-top: 2px; }
 #elSonuTablo .takimSatiri b.t0 { color: #ff9b9b; }
 #elSonuTablo .takimSatiri b.t1 { color: #9cc2ff; }
+
+/* Sohbet balonu: yazan oyuncunun isminin üstünde 3 saniye */
+.balon {
+  position: fixed; z-index: 45; transform: translate(-50%, -100%); max-width: min(220px, 70vw); pointer-events: none;
+  background: #fffdf5; color: #1b1b1b; font-size: 13px; font-weight: 600; line-height: 1.25; padding: 6px 10px;
+  border-radius: 12px; box-shadow: 0 4px 12px #000a; word-wrap: break-word; animation: balonGel .2s ease-out;
+  transition: opacity .3s;
+}
+.balon::after {
+  content: ''; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%);
+  border: 6px solid transparent; border-bottom: 0; border-top-color: #fffdf5;
+}
+.balon.gidiyor { opacity: 0; }
+@keyframes balonGel { from { opacity: 0; transform: translate(-50%, -80%) scale(.8); } to { opacity: 1; transform: translate(-50%, -100%); } }

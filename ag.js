@@ -518,12 +518,14 @@ const Ag = (() => {
       : `<b style="color:${KOLTUK_RENKLERI[no] ?? '#fff'}">${guvenli(ad)}:</b> ${guvenli(metin)}`;
     $('sohbetListe').appendChild(satir);
     $('sohbetListe').scrollTop = $('sohbetListe').scrollHeight;
+    // Oyuncunun yazdığı mesaj, isminin üstünde balon olarak görünür (kendi yazdığın da)
+    const balonda = no >= 0 && balonGoster(no, metin);
     if (no === ui.benimNo) return;
     if ($('sohbetPaneli').hidden) {
       ag.okunmamis++;
       $('okunmamis').textContent = ag.okunmamis;
       $('okunmamis').hidden = false;
-      if (!$('oyun').hidden) mesaj(no === -1 ? `💬 ${guvenli(metin)}` : `💬 <b>${guvenli(ad)}:</b> ${guvenli(metin)}`);
+      if (!$('oyun').hidden && !balonda) mesaj(no === -1 ? `💬 ${guvenli(metin)}` : `💬 <b>${guvenli(ad)}:</b> ${guvenli(metin)}`);
     }
     Ses.secim();
   }
