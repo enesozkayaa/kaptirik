@@ -682,8 +682,16 @@ const Sahne = (() => {
     atmaHalkasi.scale.setScalar(yakin ? 1.25 : 1);
   }
 
+  // Ekrandaki nokta ortadaki destenin üstünde mi? (parmak kocaman: biraz geniş tutulur)
+  function desteUstunde(cx, cy) {
+    const n = noktada(cx, cy);
+    return n.tik?.tur === 'deste' || Math.hypot(n.x - DESTE.x, n.z - DESTE.z) < 0.7;
+  }
+
   return {
-    RENKLER, KOSE, baslat, ciz, tasYuzu, ekranda, noktada, atmaYeri, yakinGruplar,
+    RENKLER, KOSE, baslat, ciz, tasYuzu, ekranda, noktada, atmaYeri, yakinGruplar, desteUstunde,
     tiklayinca(fn) { tiklaninca = fn; },
+    // Masada başlayan dokunuş sürüklemeye döndüyse, parmak kalkınca tıklama sayılmasın
+    tiklamayiIptal() { masadaBasildi = false; },
   };
 })();

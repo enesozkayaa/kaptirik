@@ -2,7 +2,7 @@
 // Kaptirik - ekran: menü, ıstakam, sürükle-bırak, süre, mesajlar ve puan tablosu
 // Oyunun kuralları motor.js'te; burası sadece gösterir ve dokunuşları motora iletir.
 //
-// Oynanış: ortadaki desteye dokun → taş ıstakana uçar. Soldaki oyuncunun attığı taşa dokun → yandan alırsın.
+// Oynanış: ortadaki desteye dokun → taş ıstakana uçar (ya da desteden tutup ıstakaya kendin çek). Soldaki oyuncunun attığı taşa dokun → yandan alırsın.
 // Atmak için taşı sağ alttaki köşeye sürükle. İşlemek için taşı masadaki gruba sürükle.
 // Son taşı ortaya (masanın herhangi bir yerine) bırakırsan bitirirsin.
 // Istakada taşları parmağınla tutup istediğin yere taşırsın; dizili bir grubun en sağdaki taşını tutarsan bütün grup gelir.
@@ -33,6 +33,7 @@ const ui = {
   ayar: { elSayisi: 5, yardimli: true, mod: 'essiz' },
   mesajZaman: null,
   ucacak: null,       // ıstakaya uçarak gelecek taş: { id, nereden }
+  desteCek: null,     // desteden parmakla çekilen taş: { pid, x0, y0, basladi, hayalet, id, birakilan }
   ucan: null,         // şu an uçmakta olan taş: { id, bitis }
   yuvaYigini: [],     // açma/işleme öncesi ıstaka dizilişleri (geri alınca taşlar eski yerine döner)
 };
@@ -343,6 +344,7 @@ function ciz() {
   } else if (ui.ucan && performance.now() < ui.ucan.bitis) {
     tasEl(ui.ucan.id)?.classList.add('gizli');  // uçuş sürerken yeniden çizildiyse yine gizle
   }
+  if (ui.desteCek?.id != null) tasEl(ui.desteCek.id)?.classList.add('gizli');  // taş hâlâ parmakta
 }
 
 // Sağdaki yuvarlak sayaç: sıra bendeyken kalan süre
@@ -576,6 +578,76 @@ function surukleKur() {
   document.addEventListener('pointercancel', bitir);
 }
 
+// ---------- Desteden parmakla taş çekme ----------
+// Ortadaki desteye basıp kaydırınca taş parmağını izler. Istakada bir yuvaya bırakırsan oraya yerleşir;
+// yarı yolda (başka bir yere) bırakırsan kendiliğinden ıstakaya uçar. Sadece dokunursan eskisi gibi uçar.
+function desteSurukleKur() {
+  $('sahne').addEventListener('pointerdown', e => {
+    const o = Masa.oyun;
+    if (!o || o.asama !== 'oyun' || ui.surukle || ui.desteCek) return;
+    if (!siraBende() || o.tur.cekti || !Sahne.desteUstunde(e.clientX, e.clientY)) return;
+    ui.desteCek = { pid: e.pointerId, x0: e.clientX, y0: e.clientY, basladi: false, hayalet: null, id: null, birakilan: null };
+  });
+
+  document.addEventListener('pointermove', e => {
+    const s = ui.desteCek;
+    if (!s || e.pointerId !== s.pid || s.birakilan) return;
+    if (!s.basladi) {
+      if (Math.hypot(e.clientX - s.x0, e.clientY - s.y0) < 8) return;
+      s.basladi = true;
+      Sahne.tiklamayiIptal();
+      // Önce sırtı görünen bir taş tutulur; çekilen taş gelince yüzü görünür
+      const g = $('istaka').querySelector('.yuva').getBoundingClientRect();
+      s.hayalet = document.createElement('div');
+      s.hayalet.className = 'ucan tutulan';
+      s.hayalet.innerHTML = '<div class="tas ters"></div>';
+      Object.assign(s.hayalet.style, { width: `${g.width}px`, height: `${g.height}px` });
+      s.hayalet.style.setProperty('--g', getComputedStyle($('istaka')).getPropertyValue('--g'));
+      s.dx = g.width / 2;
+      s.dy = g.height * 0.7;
+      document.body.appendChild(s.hayalet);
+      if (!sonuc(Masa.ortadanCek(ui.benimNo))) {
+        s.hayalet.remove();
+        ui.desteCek = null;
+        return;
+      }
+    }
+    s.hayalet.style.left = `${e.clientX - s.dx}px`;
+    s.hayalet.style.top = `${e.clientY - s.dy}px`;
+    document.querySelectorAll('.yuva.hedef').forEach(y => y.classList.remove('hedef'));
+    document.elementFromPoint(e.clientX, e.clientY)?.closest('#istaka .yuva')?.classList.add('hedef');
+  });
+
+  const bitir = e => {
+    const s = ui.desteCek;
+    if (!s || e.pointerId !== s.pid || s.birakilan) return;
+    if (!s.basladi) {
+      ui.desteCek = null;  // sadece dokunuş: masaya dokunma olarak işlenir (taş uçar)
+      return;
+    }
+    const kutu = s.hayalet.getBoundingClientRect();
+    s.hayalet.remove();
+    document.querySelectorAll('.yuva.hedef').forEach(y => y.classList.remove('hedef'));
+    const nereden = { x: kutu.left + kutu.width / 2, y: kutu.top + kutu.height / 2 };
+    if (s.id == null) {
+      // Online'da taş henüz gelmedi: gelince bırakılan yerden ıstakaya uçar
+      s.birakilan = nereden;
+      return;
+    }
+    ui.desteCek = null;
+    const yuva = e.type === 'pointerup' && document.elementFromPoint(e.clientX, e.clientY)?.closest('#istaka .yuva');
+    istakayiEsitle(benim().el);
+    if (!benim().el.some(t => t.id === s.id)) return ciz();  // bu arada süre dolup atıldıysa
+    if (yuva) {
+      yuvayaTasi(s.id, +yuva.dataset.yuva);
+      Ses.secim();
+    } else ui.ucacak = { id: s.id, nereden };
+    ciz();
+  };
+  document.addEventListener('pointerup', bitir);
+  document.addEventListener('pointercancel', bitir);
+}
+
 // Bırakılan noktanın atma köşesine (sağ alt) uzaklığı; köşedeki yığının üstündeyse 0
 function koseUzakligi(x, y) {
   const n = Sahne.noktada(x, y);
@@ -709,7 +781,15 @@ function olay(tip, v) {
   } else if (tip === 'cekti') {
     Ses.cek();
     // Benim çektiğim taş desteden (ya da soldan) ıstakama uçar
-    if (v.no === ui.benimNo && v.tas) ui.ucacak = { id: v.tas.id, nereden: Sahne.ekranda(v.yandan ? 3 : 'deste') };
+    const dc = ui.desteCek;
+    if (v.no === ui.benimNo && v.tas && dc && !v.yandan) {
+      dc.id = v.tas.id;
+      if (dc.birakilan) {
+        // Taş sunucudan gelmeden parmak kalktıysa: bırakılan yerden ıstakaya uçar
+        ui.ucacak = { id: v.tas.id, nereden: dc.birakilan };
+        ui.desteCek = null;
+      } else if (dc.hayalet) dc.hayalet.innerHTML = tasHtml(v.tas);
+    } else if (v.no === ui.benimNo && v.tas) ui.ucacak = { id: v.tas.id, nereden: Sahne.ekranda(v.yandan ? 3 : 'deste') };
     if (v.no !== ui.benimNo && v.yandan) mesaj(`${ad(v.no)} yandan aldı`);
   } else if (tip === 'atti') {
     Ses.at();
@@ -887,6 +967,7 @@ Motor.dinleyici('olay', (tip, v) => {
   if (typeof Ag !== 'undefined') Ag.olayYay(tip, v);
 });
 surukleKur();
+desteSurukleKur();
 $('eylemler').addEventListener('click', e => {
   const b = e.target.closest('button[data-e]');
   if (b && !b.disabled) eylem(b.dataset.e);
