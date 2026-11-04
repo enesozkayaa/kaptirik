@@ -60,6 +60,7 @@ const Ses = (() => {
   }
 
   const oyna = (a, b) => a + Math.random() * (b - a);
+  let tikTak = false;  // saat sesi sırayla tik / tak
 
   // Filtrelenmiş gürültü parçası
   function hisirti(t, { sure, tip, frekans, q = 1, seviye, atak = 0.001 }) {
@@ -179,8 +180,14 @@ const Ses = (() => {
     },
     // Süre azalırken saat gibi tıklama, son saniyelerde çift tık
     tik: () => vurus(0, 0.18, 0.5),
-    // Süre azalırken tek, tok vuruş (son saniyelerde sıklaşır)
-    sayac: () => vurus(0, 0.6, 1),
+    // Süre azalırken masa saati gibi "tik-tak" (son saniyelerde sıklaşır)
+    sayac: () => {
+      motor();
+      const t = ctx.currentTime;
+      tikTak = !tikTak;
+      hisirti(t, { sure: 0.03, tip: 'bandpass', frekans: tikTak ? 3200 : 2600, q: 4, seviye: 0.55 });
+      tini(t, tikTak ? 2200 : 1800, 0.02, 0.08);
+    },
     uyari: () => {
       vurus(0, 0.5, 0.9);
       vurus(0.12, 0.5, 0.9);
