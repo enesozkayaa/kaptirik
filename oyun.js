@@ -16,8 +16,8 @@ const KOLTUK_RENKLERI = ['#e23b3b', '#3b82f6', '#22c55e', '#facc15'];
 const BOT_ADLARI = ['Bot Ayşe', 'Bot Mehmet', 'Bot Zeynep'];
 // Istaka: bilgisayarda 2 sıra x 15 yuva; telefonda 3 sıra x 12 (taşlar daha büyük görünsün)
 const DAR_EKRAN = window.matchMedia('(max-width: 600px)').matches;
-const SIRA = DAR_EKRAN ? 12 : 15;   // bir sıradaki yuva sayısı
-const SATIR = DAR_EKRAN ? 3 : 2;    // sıra sayısı
+const SIRA = DAR_EKRAN ? 14 : 15;   // bir sıradaki yuva sayısı (telefonda ekrana sığsın diye 14)
+const SATIR = 2;                    // sıra sayısı: gerçek ıstaka gibi her yerde 2 kat
 const ISTAKA_YUVA = SIRA * SATIR;
 const AD_ANAHTARI = 'kaptirik.ad';
 const guvenli = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
@@ -991,7 +991,7 @@ function puanTablosu() {
 
 // ---------- Başlangıç ----------
 $('istaka').style.setProperty('--sira', SIRA);
-$('istaka').classList.toggle('ucSira', SATIR === 3);
+$('istaka').classList.toggle('dar', DAR_EKRAN);
 Sahne.baslat($('sahne'));
 Sahne.tiklayinca(masaDokunus);
 // Oda sahibiysem her değişiklik ve olay odadakilere de gider

@@ -106,7 +106,7 @@ details li { margin: 4px 0; }
 #eylemler .uyariBtn { background: linear-gradient(#ffd0a0, #f08a3a); }
 #eylemler .atBtn { background: linear-gradient(#9fe7b0, #3bb36a); }
 
-/* Istaka: bilgisayarda 2 sıra x 15, telefonda 3 sıra x 12 yuva (--sira oyun.js'ten), ahşap */
+/* Istaka: 2 kat; bilgisayarda 15, telefonda 14 yuva (--sira oyun.js'ten), ahşap */
 #istaka {
   --sira: 15;
   --g: min(44px, calc((100vw - 72px) / var(--sira)));
@@ -129,17 +129,13 @@ details li { margin: 4px 0; }
 .ucan { position: fixed; z-index: 40; pointer-events: none; transition: transform .45s cubic-bezier(.2,.8,.3,1); }
 .ucan.tutulan { transition: none; transform: scale(1.15); filter: drop-shadow(0 8px 10px #000a); }
 .yuva { width: var(--g); height: calc(var(--g) * 1.38); border-radius: 4px; background: #00000012; }
-/* Telefonda 3 sıra: ince kenar boşlukları, sıraların arasında iki basamak çizgisi, taşlar ve yazılar büyük */
-#istaka.ucSira {
-  --g: min(44px, calc((100vw - 32px - (var(--sira) - 1) * 2px) / var(--sira)));
-  padding: 5px; border-left-width: 5px; border-right-width: 5px;
-  background:
-    linear-gradient(transparent calc(33.4% - 2px), #7a4312 calc(33.4% - 2px), #e9a95a calc(33.4% + 1px), transparent calc(33.4% + 1px)),
-    linear-gradient(transparent calc(66.7% - 2px), #7a4312 calc(66.7% - 2px), #e9a95a calc(66.7% + 1px), transparent calc(66.7% + 1px)),
-    linear-gradient(#e19a45, #c47a2c 55%, #a8601c);
+/* Telefonda: ince kenar boşlukları, taşlar arası boşluk az (taşlar olabildiğince büyük), yazılar büyük */
+#istaka.dar {
+  --g: min(44px, calc((100vw - 30px - (var(--sira) - 1) * 1px) / var(--sira)));
+  gap: 3px 1px; padding: 4px 2px; border-left-width: 4px; border-right-width: 4px;
 }
-#istaka.ucSira .yuva { height: calc(var(--g) * 1.32); }
-#istaka.ucSira .tas .sayi { font-size: calc(var(--g) * .6); }
+#istaka.dar .yuva { height: calc(var(--g) * 1.42); }
+#istaka.dar .tas .sayi { font-size: calc(var(--g) * .62); }
 
 /* Taşlar */
 .tas {
