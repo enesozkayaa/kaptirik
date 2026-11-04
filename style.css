@@ -329,3 +329,8 @@ details li { margin: 4px 0; }
 .lobiKoltuk.alt { grid-area: 3 / 2; }
 .lobiIpucu { display: block; opacity: .7; margin-bottom: 6px; }
 .not a { color: inherit; }
+
+/* Ana menü: şu an kaç kişi online */
+#onlineSayi { margin: -4px 0 10px; text-align: center; font-size: 13px; color: #cfe9d6; }
+#onlineSayi b { color: #7dff9b; }
+#onlineSayi .yesil { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #3ddc6b; box-shadow: 0 0 6px #3ddc6b; margin-right: 3px; vertical-align: 1px; animation: nabiz 1.6s infinite; }

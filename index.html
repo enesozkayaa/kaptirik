@@ -20,6 +20,7 @@
     <div class="kart">
       <h1>Kaptirik</h1>
       <p class="alt">51 Okey · ıstakanı diz, 51'i geç, kaptırma!</p>
+      <p id="onlineSayi" hidden></p>
       <label>Adın <input id="adim" maxlength="12" placeholder="Adını yaz" autocomplete="off"></label>
       <div class="satir">
         <span>El sayısı</span>
@@ -163,6 +164,7 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="oyun.js"></script>
   <script src="ag.js"></script>
+  <script src="sayac.js"></script>
   <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   </script>
