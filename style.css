@@ -95,7 +95,7 @@ details li { margin: 4px 0; }
 #mesaj.iyi span { background: #0d6b3ae6; }
 
 /* ---------- Alt kısım: süre, düğmeler, ıstaka ---------- */
-#alt { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 0 6px max(6px, env(safe-area-inset-bottom)); pointer-events: none; }
+#alt { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 0 6px calc(18px + env(safe-area-inset-bottom)); pointer-events: none; }  /* ıstakanın altında biraz boşluk */
 #alt > *, #ust > * { pointer-events: auto; }
 #alt > #mesaj, #alt > #eylemler, #alt > #benSatiri { pointer-events: none; }
 #eylemler button { pointer-events: auto; }
