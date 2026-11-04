@@ -819,7 +819,7 @@ function olay(tip, v) {
     Ses.cek();
     // Benim çektiğim taş desteden (ya da soldan) ıstakama uçar
     const dc = ui.desteCek;
-    if (v.no === ui.benimNo && v.tas && dc && !v.yandan) {
+    if (v.no === ui.benimNo && v.tas && dc?.basladi && !v.yandan) {  // sadece gerçekten sürükleniyorsa (dokunuşta taş uçar)
       dc.id = v.tas.id;
       if (dc.birakilan) {
         // Taş sunucudan gelmeden parmak kalktıysa: bırakılan yerden ıstakaya uçar
