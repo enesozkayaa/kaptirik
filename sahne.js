@@ -424,7 +424,7 @@ const Sahne = (() => {
 
   // Atılan taşların köşeleri (koltuğa göre). Sıra saatin tersine: ben (alt) → sağ → üst → sol.
   // Ben sağ alt köşeye atarım (sağdaki oradan alır); soldaki sol alt köşeye atar, ben oradan alırım.
-  const KOSE = [[3.15, 3.15], [3.15, -3.15], [-3.15, -3.15], [-3.15, 3.15]];
+  const KOSE = [[2.95, 2.95], [2.95, -2.95], [-2.95, -2.95], [-2.95, 2.95]];
   const DONUS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];  // koltuğun önündeki alanı o koltuğa çevirir: alt, sağ, üst, sol
   // Koltuğun yerel konumunu masadaki gerçek konuma çevir
   const yereDon = (x, z, a) => ({ x: x * Math.cos(a) + z * Math.sin(a), z: -x * Math.sin(a) + z * Math.cos(a) });
@@ -602,10 +602,11 @@ const Sahne = (() => {
     renderer.setSize(w, h);
     kamera.aspect = w / h;
     kamera.updateProjectionMatrix();
-    // Dik telefonda masayı sığdırmak için geri çekil (kenardaki tahta biraz taşabilir, taşlar büyük görünsün)
-    const k = kamera.aspect < 1 ? Math.min(1.9, 0.98 / kamera.aspect) : 1;
+    // Dik telefonda masayı sığdırmak için geri çekil. Fazla geri çekilmez: masanın kenarları ve yan ıstakalar
+    // biraz taşar ama ortadaki ve köşelerdeki taşlar büyük görünür.
+    const k = kamera.aspect < 1 ? Math.min(1.68, 0.8 / kamera.aspect) : 1;
     bakis.konum.set(0, 10.4 * k, 6.2 * k);
-    bakis.hedef.set(0, 0, 1.1 + (k - 1) * 0.35);
+    bakis.hedef.set(0, 0, 1.1 + (k - 1) * 0.9);  // telefonda masa üstteki boşluğa doğru kayar
   }
 
   function tikla(e) {

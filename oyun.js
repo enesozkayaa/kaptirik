@@ -14,7 +14,11 @@ const K = Kurallar;
 const RENK_KODLARI = Sahne.RENKLER;
 const KOLTUK_RENKLERI = ['#e23b3b', '#3b82f6', '#22c55e', '#facc15'];
 const BOT_ADLARI = ['Bot Ayşe', 'Bot Mehmet', 'Bot Zeynep'];
-const ISTAKA_YUVA = 30;   // 2 sıra x 15 yuva
+// Istaka: bilgisayarda 2 sıra x 15 yuva; telefonda 3 sıra x 12 (taşlar daha büyük görünsün)
+const DAR_EKRAN = window.matchMedia('(max-width: 600px)').matches;
+const SIRA = DAR_EKRAN ? 12 : 15;   // bir sıradaki yuva sayısı
+const SATIR = DAR_EKRAN ? 3 : 2;    // sıra sayısı
+const ISTAKA_YUVA = SIRA * SATIR;
 const AD_ANAHTARI = 'kaptirik.ad';
 const guvenli = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 
@@ -98,14 +102,14 @@ function istakayiEsitle(el) {
   const yerde = new Set(ui.yuvalar.filter(id => id !== null));
   el.forEach(t => {
     if (yerde.has(t.id)) return;
-    // Yeni gelen taş üst sıradaki son taşın sağına konur; üst sıra doluysa alt sıraya, en son ilk boşluğa
-    const sonUst = ui.yuvalar.slice(0, 15).findLastIndex(id => id !== null);
-    let bos = sonUst < 14 ? sonUst + 1 : -1;
-    if (bos < 0) {
-      const sonAlt = ui.yuvalar.findLastIndex(id => id !== null);
-      bos = sonAlt >= 15 && sonAlt < 29 ? sonAlt + 1 : ui.yuvalar.indexOf(null, 15);
+    // Yeni gelen taş, son taşının sağında yer olan ilk sıraya konur (üstten başlayarak); yoksa ilk boşluğa
+    let bos = -1;
+    for (let r = 0; r < SATIR && bos < 0; r++) {
+      const sira = ui.yuvalar.slice(r * SIRA, r * SIRA + SIRA);
+      const son = sira.findLastIndex(id => id !== null);
+      if (son < SIRA - 1) bos = r * SIRA + son + 1;
     }
-    if (bos < 0) bos = ui.yuvalar.indexOf(null);
+    if (bos < 0 || ui.yuvalar[bos] !== null) bos = ui.yuvalar.indexOf(null);
     ui.yuvalar[bos] = t.id;
   });
 }
@@ -120,7 +124,7 @@ function yuvayaTasi(id, hedef) {
     y[hedef] = id;
     return;
   }
-  const bas = Math.floor(hedef / 15) * 15, son = bas + 15;
+  const bas = Math.floor(hedef / SIRA) * SIRA, son = bas + SIRA;
   let r = -1;
   for (let k = hedef + 1; k < son; k++) if (y[k] === null) { r = k; break; }
   if (r >= 0) {
@@ -143,28 +147,28 @@ function grubuTasi(ids, hedef) {
   const eski = [...ui.yuvalar];
   const n = ids.length;
   ui.yuvalar = ui.yuvalar.map(id => (ids.includes(id) ? null : id));
-  const satirBas = Math.floor(hedef / 15) * 15;
-  const satir = ui.yuvalar.slice(satirBas, satirBas + 15);
+  const satirBas = Math.floor(hedef / SIRA) * SIRA;
+  const satir = ui.yuvalar.slice(satirBas, satirBas + SIRA);
   if (satir.filter(id => id === null).length < n) {
     ui.yuvalar = eski;
     return false;
   }
-  const bas = Math.min(Math.max(hedef - n + 1, satirBas), satirBas + 15 - n) - satirBas;
+  const bas = Math.min(Math.max(hedef - n + 1, satirBas), satirBas + SIRA - n) - satirBas;
   const yeni = [...satir.slice(0, bas), ...ids, ...satir.slice(bas)];
   // Fazladan gelen n yuvayı boşluklardan sil: önce grubun sağındakiler, sonra solundakiler
   let silinecek = n;
   for (let k = bas + n; k < yeni.length && silinecek; k++) if (yeni[k] === null) { yeni.splice(k, 1); k--; silinecek--; }
   for (let k = bas - 1; k >= 0 && silinecek; k--) if (yeni[k] === null) { yeni.splice(k, 1); silinecek--; }
-  ui.yuvalar.splice(satirBas, 15, ...yeni);
+  ui.yuvalar.splice(satirBas, SIRA, ...yeni);
   return true;
 }
 
 // Istakada yan yana dizilmiş taş kümeleri (aralarında boşluk olanlar ayrı küme)
 function istakaKumeleri() {
   const kumeler = [];
-  for (let satir = 0; satir < 2; satir++) {
+  for (let satir = 0; satir < SATIR; satir++) {
     let kume = [];
-    for (let k = satir * 15; k < satir * 15 + 15; k++) {
+    for (let k = satir * SIRA; k < satir * SIRA + SIRA; k++) {
       const id = ui.yuvalar[k];
       if (id !== null && id !== undefined) kume.push(id);
       else if (kume.length) {
@@ -232,13 +236,13 @@ function istakayaDiz(gruplar, kalan) {
   const yeni = Array(ISTAKA_YUVA).fill(null);
   let i = 0;
   const sig = n => {
-    const satirSonu = Math.floor(i / 15) * 15 + 15;
-    if (i + n > satirSonu && i % 15) i = satirSonu;  // grup satıra sığmıyorsa alt satıra
+    const satirSonu = Math.floor(i / SIRA) * SIRA + SIRA;
+    if (i + n > satirSonu && i % SIRA) i = satirSonu;  // grup satıra sığmıyorsa alt satıra
   };
   gruplar.forEach(g => {
     sig(g.length);
     g.forEach(t => (yeni[i++] = t.id));
-    i++;
+    if (i % SIRA) i++;  // gruplar arasında bir boşluk (sıra bittiyse alttaki sıra boşlukla başlamasın)
   });
   kalan.forEach(t => {
     if (i >= ISTAKA_YUVA || yeni[i] !== null) i = yeni.indexOf(null);
@@ -869,6 +873,8 @@ function puanTablosu() {
 }
 
 // ---------- Başlangıç ----------
+$('istaka').style.setProperty('--sira', SIRA);
+$('istaka').classList.toggle('ucSira', SATIR === 3);
 Sahne.baslat($('sahne'));
 Sahne.tiklayinca(masaDokunus);
 // Oda sahibiysem her değişiklik ve olay odadakilere de gider
