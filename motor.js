@@ -251,13 +251,16 @@ const Motor = (() => {
       p.acisTuru = tur;
       o.esik = Math.max(o.esik, sonuc.deger);
       olay('acti', { no, tur, deger: sonuc.deger });
-      // Yandan alıp açtıysan taşı atana ceza: seri × 10, çift × 20
-      if (yandanKullanildi) {
-        const t = o.tur.yandan;
-        ceza(o.tur.yandanKimden, K.deger(t, o.okey) * (tur === 'cift' ? 20 : 10), `taşı veren: ${o.oyuncular[o.tur.yandanKimden].ad} (${p.ad} ${tur === 'cift' ? 'çift açtı, × 20' : 'seri açtı, × 10'})`);
-      }
     } else {
       olay('koydu', { no, tur, deger: sonuc.deger });
+    }
+    // Yandan alınan taşla açtıysan ya da (daha önce açmışken) yere yeni grup koyduysan taşı atana ceza:
+    // seri açmış olana göre × 10, çift açmış olana göre × 20
+    if (yandanKullanildi) {
+      const t = o.tur.yandan;
+      const cift = p.acisTuru === 'cift';
+      ceza(o.tur.yandanKimden, K.deger(t, o.okey) * (cift ? 20 : 10),
+        `taşı veren: ${o.oyuncular[o.tur.yandanKimden].ad} (${p.ad} ${ilkAcis ? (cift ? 'çift açtı' : 'seri açtı') : 'yere koydu'}, × ${cift ? 20 : 10})`);
     }
     // İlk açışta düşünmek için süre baştan başlar (geri alıp tekrar açınca bir daha başlamaz)
     if (!o.tur.sureSifirlandi) {
