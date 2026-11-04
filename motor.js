@@ -249,10 +249,28 @@ const Motor = (() => {
     if (ilkAcis) {
       p.acti = true;
       p.acisTuru = tur;
+      o.acmaSayaci = (o.acmaSayaci ?? 0) + 1;
+      p.acmaSirasi = o.acmaSayaci;  // kim önce açtı (çift koyma cezası ilk çift açana yazılır)
       o.esik = Math.max(o.esik, sonuc.deger);
       olay('acti', { no, tur, deger: sonuc.deger });
     } else {
       olay('koydu', { no, tur, deger: sonuc.deger });
+    }
+    // Daha önce açmışken yere yeni çift koyduysan: çift açmış (ilk) oyuncuya her çift için taş × 20 ceza
+    // (kendisi ya da eşi çift açtıysa ceza yok)
+    if (!ilkAcis && tur === 'cift') {
+      const ciftAcan = o.oyuncular.map((x, i) => ({ x, i }))
+        .filter(({ x, i }) => x.acti && x.acisTuru === 'cift' && !kendisiYaDaEsi(i, no))
+        .sort((a, b) => (a.x.acmaSirasi ?? 0) - (b.x.acmaSirasi ?? 0))[0];
+      const ilkCiftAcan = o.oyuncular.map((x, i) => ({ x, i })).filter(({ x }) => x.acti && x.acisTuru === 'cift')
+        .sort((a, b) => (a.x.acmaSirasi ?? 0) - (b.x.acmaSirasi ?? 0))[0];
+      if (ciftAcan && ilkCiftAcan && ciftAcan.i === ilkCiftAcan.i) {
+        gruplar.forEach(g => {
+          const tas = g.sirali.find(x => !K.jokerMi(x, o.okey)) ?? g.sirali[0];
+          const d = K.deger(tas, o.okey);
+          ceza(ciftAcan.i, d * 20, `${p.ad} yere ${d} çifti koydu (çift açan: ${ciftAcan.x.ad}, × 20)`);
+        });
+      }
     }
     // Yandan alınan taşla açtıysan ya da (daha önce açmışken) yere yeni grup koyduysan taşı atana ceza:
     // seri açmış olana göre × 10, çift açmış olana göre × 20
@@ -305,7 +323,9 @@ const Motor = (() => {
       okeyTasi.ters = false;
       p.el.push(okeyTasi);
       // Kendi grubundaki okeyi alana ceza yok
-      if (!kendisiYaDaEsi(g.sahip, no)) ceza(g.sahip, 500 + K.deger(t, o.okey) * 10, `${p.ad}, ${sahip.ad} grubundaki okeyin yerine taşını koydu`);
+      // Çiftteki okey alınırsa 500 + taş × 20, per/serideki okey alınırsa 500 + taş × 10
+      const kat = g.tur === 'cift' ? 20 : 10;
+      if (!kendisiYaDaEsi(g.sahip, no)) ceza(g.sahip, 500 + K.deger(t, o.okey) * kat, `${p.ad}, ${sahip.ad} ${g.tur === 'cift' ? 'çiftindeki' : 'grubundaki'} okeyin yerine taşını koydu`);
       olay('takas', { no, grupId });
     } else {
       Object.assign(g, { sirali: s.yeni.sirali, temsil: s.yeni.temsil, deger: s.yeni.deger });
