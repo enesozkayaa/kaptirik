@@ -219,7 +219,11 @@ const Motor = (() => {
     if (!gruplar.length) return hata(tur === 'cift' ? 'Istakanda dizili çift yok. Çiftleri yan yana koy, aralarına boşluk bırak.' : 'Istakanda dizili per ya da seri yok. Grupları yan yana diz, aralarına boşluk bırak.');
     if (gruplar.reduce((a, g) => a + g.sirali.length, 0) >= p.el.length) return hata('Elinde atacak bir taş kalmalı. Son taşı ortaya atarak bitirirsin.');
     if (p.acti) {
-      if (p.acisTuru !== tur) return hata(p.acisTuru === 'cift' ? 'Çift açtın: yere sadece çift koyabilirsin.' : 'Seri açtın: yere çift koyamazsın.');
+      // Seri açan, yerde açılmış çift varsa çiftlerini de yere koyabilir. Çift açan seri/per koyamaz, sadece işler.
+      const ciftKoyabilir = p.acisTuru === 'seri' && tur === 'cift' && o.masa.some(g => g.tur === 'cift');
+      if (p.acisTuru !== tur && !ciftKoyabilir) {
+        return hata(p.acisTuru === 'cift' ? 'Çift açtın: yere seri ya da per koyamazsın, sadece işleyebilirsin.' : 'Yerde açılmış çift yokken çift koyamazsın.');
+      }
     } else {
       // Bütün el dizili ve tek taş kalıyorsa 51'in (ve katlamanın) altında da açılır: son taşı atınca biter
       const butunEl = gruplar.reduce((a, g) => a + g.sirali.length, 0) === p.el.length - 1;

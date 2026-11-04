@@ -393,6 +393,8 @@ function dugmeleriCiz() {
     } else {
       const koyulacak = ben.acisTuru === 'cift' ? dc.gruplar.length : ds.gruplar.length;
       if (koyulacak) d.push(`<button data-e="${ben.acisTuru === 'cift' ? 'acCift' : 'acSeri'}">Yere koy</button>`);
+      // Seri açtıysan ve yerde çift açılmışsa çiftlerini de koyabilirsin
+      if (ben.acisTuru === 'seri' && dc.gruplar.length && o.masa.some(g => g.tur === 'cift')) d.push('<button data-e="acCift">Çiftleri koy</button>');
     }
     // Yardımlı modda uyan taşların hepsini tek basışla işle (yanlışsa "Geri al" hepsini geri getirir)
     if (ben.acti && o.ayar.yardimli && ben.el.some(t => !K.jokerMi(t, o.okey) && K.islekMi(t, o.masa, o.okey))) {
