@@ -275,8 +275,9 @@ const Motor = (() => {
     o.masa.push({ id: ++o.grupSayaci, sahip: no, tur: g.tur, sirali: g.sirali, temsil: g.temsil, deger: g.deger });
   }
 
-  // Elindeki bir taşı masadaki bir gruba işle. kayit: geri alma için önceki hâli sakla
-  function isle(no, tasId, grupId, kayit = true) {
+  // Elindeki bir taşı masadaki bir gruba işle. yon: okey serinin hangi ucuna ('sol' baş, 'sag' son),
+  // kayit: geri alma için önceki hâli sakla
+  function isle(no, tasId, grupId, yon = 'sag', kayit = true) {
     if (!siraKimde(no)) return hata('Sıra sende değil.');
     if (!o.tur.cekti) return hata('Önce taş çek.');
     const p = o.oyuncular[no];
@@ -284,7 +285,7 @@ const Motor = (() => {
     const t = p.el.find(x => x.id === tasId);
     const g = o.masa.find(x => x.id === grupId);
     if (!t || !g) return hata('Taş ya da grup bulunamadı.');
-    const s = K.isleme(g, t, o.okey);
+    const s = K.isleme(g, t, o.okey, yon === 'sol' ? 'sol' : 'sag');
     if (!s) return hata('Bu taş bu gruba uymuyor.');
     if (!s.takas && p.el.length === 1) return hata('Son taşını işleyemezsin: ortaya atarak bitir.');
     if (!s.takas && (o.tur.islenen[grupId] ?? 0) >= ISLEME_SINIRI) {
@@ -353,7 +354,7 @@ const Motor = (() => {
       for (const t of p.el) {
         if (K.jokerMi(t, o.okey)) continue;
         const g = o.masa.find(x => isleyebilir(t, x));
-        if (g && isle(no, t.id, g.id, false).ok) {
+        if (g && isle(no, t.id, g.id, undefined, false).ok) {
           sayi++;
           devam = true;
           break;

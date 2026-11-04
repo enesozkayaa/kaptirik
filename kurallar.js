@@ -69,9 +69,13 @@ const Kurallar = (() => {
     if (new Set(konumlar).size !== konumlar.length) return null;
     const min = Math.min(...konumlar), max = Math.max(...konumlar);
     if (max - min + 1 > n) return null;
-    // Jokerler en yüksek değeri verecek şekilde yerleşir (seri olabildiğince yukarı kayar, 13'ü geçemez)
-    const bas = Math.min(min, 14 - n);
-    if (bas < 1) return null;
+    // Okeyler taşların dizildiği sıraya göre yerleşir: baştaki okeyler serinin altına (ör. okey-2-3-4-5 → 1),
+    // geri kalanlar üstüne (2-3-4-5-okey → 6). Seri 1'in altına ya da 13'ün üstüne taşamaz; taşarsa öbür uca geçer.
+    let basta = 0;
+    while (basta < n && jokerMi(taslar[basta], okey)) basta++;
+    const enAz = Math.max(1, max - n + 1), enCok = Math.min(min, 14 - n);
+    if (enAz > enCok) return null;
+    const bas = Math.min(enCok, Math.max(enAz, min - basta));
     const enIyi = { bas, deger: n * bas + (n * (n - 1)) / 2, konumlar };
     const sirali = [], temsil = [];
     const kalanJoker = [...jokerler];
@@ -230,7 +234,8 @@ const Kurallar = (() => {
   // Bu taş masadaki bu gruba işlenebilir mi? Okeyin yerine gerçek taş konuyorsa "takas" döner.
   // Çiftlere taş eklenmez ama içindeki okey gerçek taşla takas edilebilir.
   // 3'lü perdeki okey alınmaz: gerçek taş yanına eklenir (per 4'lü olur); okey ancak 4'lü perden alınır.
-  function isleme(grup, tas, okey) {
+  // yon: 'sol' ise taş serinin başına (okey küçük ucuna) konur, değilse sonuna.
+  function isleme(grup, tas, okey, yon = 'sag') {
     // Takas: grupta, bu taşın yerine geçen bir okey varsa
     const e = etkin(tas, okey);
     const takasOlur = !(grup.tur === 'per' && grup.sirali.length < 4);
@@ -239,7 +244,7 @@ const Kurallar = (() => {
       if (yer >= 0) return { takas: true, yer };
     }
     if (grup.tur === 'cift') return null;
-    const yeni = grupCoz([...grup.sirali, tas], okey);
+    const yeni = grupCoz(yon === 'sol' ? [tas, ...grup.sirali] : [...grup.sirali, tas], okey);
     if (!yeni || yeni.tur !== grup.tur) return null;
     return { takas: false, yeni };
   }

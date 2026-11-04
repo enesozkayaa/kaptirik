@@ -597,7 +597,11 @@ const Sahne = (() => {
         grup.position.set(x + TAS_G * m / 2, 0, z);
         // Masadaki gerçek kapladığı alan (taş bırakırken yakındaki grubu bulmak için)
         const k1 = yereDon(x, z - TAS_Y * m / 2, DONUS[koltuk]), k2 = yereDon(x + gen, z + TAS_Y * m / 2, DONUS[koltuk]);
-        grupKutulari.push({ id: gr.id, x0: Math.min(k1.x, k2.x), x1: Math.max(k1.x, k2.x), z0: Math.min(k1.z, k2.z), z1: Math.max(k1.z, k2.z) });
+        const bas = yereDon(x, z, DONUS[koltuk]), son = yereDon(x + gen, z, DONUS[koltuk]);  // grubun ilk ve son taşı
+        grupKutulari.push({
+          id: gr.id, x0: Math.min(k1.x, k2.x), x1: Math.max(k1.x, k2.x), z0: Math.min(k1.z, k2.z), z1: Math.max(k1.z, k2.z),
+          bas, son,
+        });
         grup.traverse(m => (m.userData.tik = { tur: 'grup', id: gr.id }));
         tiklanabilir.push(grup);
         kap.add(grup);
@@ -682,6 +686,13 @@ const Sahne = (() => {
     atmaHalkasi.scale.setScalar(yakin ? 1.25 : 1);
   }
 
+  // Masadaki nokta grubun baş tarafına mı ('sol') yakın, son tarafına mı ('sag')? (okeyi hangi uca koyacağız)
+  function grupUcu(id, x, z) {
+    const k = grupKutulari.find(g => g.id === id);
+    if (!k) return 'sag';
+    return Math.hypot(x - k.bas.x, z - k.bas.z) < Math.hypot(x - k.son.x, z - k.son.z) ? 'sol' : 'sag';
+  }
+
   // Ekrandaki nokta ortadaki destenin üstünde mi? (parmak kocaman: biraz geniş tutulur)
   function desteUstunde(cx, cy) {
     const n = noktada(cx, cy);
@@ -689,7 +700,7 @@ const Sahne = (() => {
   }
 
   return {
-    RENKLER, KOSE, baslat, ciz, tasYuzu, ekranda, noktada, atmaYeri, yakinGruplar, desteUstunde,
+    RENKLER, KOSE, baslat, ciz, tasYuzu, ekranda, noktada, atmaYeri, yakinGruplar, desteUstunde, grupUcu,
     tiklayinca(fn) { tiklaninca = fn; },
     // Masada başlayan dokunuş sürüklemeye döndüyse, parmak kalkınca tıklama sayılmasın
     tiklamayiIptal() { masadaBasildi = false; },

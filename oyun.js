@@ -699,7 +699,8 @@ function birak(s, x, y) {
   };
   const isle = gid => {
     if (!siraBende()) return mesaj('Sıra sende değil.');
-    sonuc(hamle(() => Masa.isle(ui.benimNo, id, gid)));
+    // Okeyi serinin hangi ucuna bıraktıysan oraya konur (2-3-4-5'in soluna bırakırsan 1 olur)
+    sonuc(hamle(() => Masa.isle(ui.benimNo, id, gid, Sahne.grupUcu(gid, n.x, n.z))));
   };
   if (siraBende() && o.tur.cekti && sonTas) {
     // Son taşı ortaya fırlat: el biter
