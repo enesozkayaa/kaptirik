@@ -5,6 +5,7 @@
 // Puanlar: cezalar artı, düşerler eksi yazılır. Oyun sonunda en düşük toplam kazanır.
 //   - Yandan alıp elini açarsan: seri açtıysan taşı atana taş × 10, çift açtıysan × 20 ceza
 //   - İşlek taş atmak: 500 ceza
+//   - Başkasının dizdiği gruba taş işlemek: grubun sahibine taş × 10 ceza
 //   - Başkasının dizdiği gruba okey koymak (çakallık): grubun sahibine 100 ceza
 //   - O okeyin yerine gerçek taş konursa: grubun sahibine 500 + taş × 10 ceza
 //   - El bitince: hiç açamayana 1000, açmış olana elinde kalan taşların toplamı × 10 ceza
@@ -307,6 +308,10 @@ const Motor = (() => {
       Object.assign(g, { sirali: s.yeni.sirali, temsil: s.yeni.temsil, deger: s.yeni.deger });
       o.tur.islenen[grupId] = (o.tur.islenen[grupId] ?? 0) + 1;
       if (K.jokerMi(t, o.okey) && !kendisiYaDaEsi(g.sahip, no)) ceza(g.sahip, 100, `${p.ad}, ${sahip.ad} grubuna okey koydu (çakallık)`);
+      // Başkasının grubuna işlenen her taş: grubun sahibine taş × 10 ceza (kendi ya da eşinin grubu cezasız)
+      else if (!K.jokerMi(t, o.okey) && !kendisiYaDaEsi(g.sahip, no)) {
+        ceza(g.sahip, K.deger(t, o.okey) * 10, `${p.ad}, ${sahip.ad} grubuna ${K.deger(t, o.okey)} işledi`);
+      }
       olay('isledi', { no, grupId });
     }
     degisti();
