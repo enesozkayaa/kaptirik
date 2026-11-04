@@ -10,8 +10,13 @@
 //   - El bitince: hiç açamayana 1000, açmış olana elinde kalan taşların toplamı × 10 ceza
 //   - Biten oyuncu:
 //       kimse açmamışken kafadan biterse -5000 (okeyle -10000, çiftle okeyle -20000), diğerlerine ceza yok
-//       başkası açmışken kafadan biterse -1000, okeyle biterse -2000, normal biterse 0
+//       başkası açmışken kafadan biterse -1000, okeyle biterse -2000, normal biterse -1000
 //   - Deste biterse el biter, herkese yukarıdaki el sonu cezaları yazılır
+//
+// Eşli oyun (ayar.esli): karşılıklı oturanlar eştir (0-2, 1-3), takımın puanı iki eşin toplamıdır.
+//   - Biri bitirince eşi ceza yemez
+//   - Eşinin grubuna okey koymak ve eşinin grubundaki okeyi almak cezasızdır
+//   - Açma sınırı (51 ve katlama) herkes için aynıdır, herkes kendi elini açar
 // =============================================================
 
 const Motor = (() => {
@@ -35,6 +40,9 @@ const Motor = (() => {
     return l;
   };
   const oncekiNo = no => (no + 3) % 4;     // yandan taş bu oyuncudan alınır
+  // Eşli oyunda a ile b eş mi? (karşılıklı oturanlar)
+  const esMi = (a, b) => !!o?.ayar.esli && a !== b && a % 2 === b % 2;
+  const kendisiYaDaEsi = (a, b) => a === b || esMi(a, b);
   const degisti = () => dinle.degisti(o);
   const olay = (tip, veri) => dinle.olay(tip, veri);
 
@@ -288,12 +296,12 @@ const Motor = (() => {
       okeyTasi.ters = false;
       p.el.push(okeyTasi);
       // Kendi grubundaki okeyi alana ceza yok
-      if (g.sahip !== no) ceza(g.sahip, 500 + K.deger(t, o.okey) * 10, `${p.ad}, ${sahip.ad} grubundaki okeyin yerine taşını koydu`);
+      if (!kendisiYaDaEsi(g.sahip, no)) ceza(g.sahip, 500 + K.deger(t, o.okey) * 10, `${p.ad}, ${sahip.ad} grubundaki okeyin yerine taşını koydu`);
       olay('takas', { no, grupId });
     } else {
       Object.assign(g, { sirali: s.yeni.sirali, temsil: s.yeni.temsil, deger: s.yeni.deger });
       o.tur.islenen[grupId] = (o.tur.islenen[grupId] ?? 0) + 1;
-      if (K.jokerMi(t, o.okey) && g.sahip !== no) ceza(g.sahip, 100, `${p.ad}, ${sahip.ad} grubuna okey koydu (çakallık)`);
+      if (K.jokerMi(t, o.okey) && !kendisiYaDaEsi(g.sahip, no)) ceza(g.sahip, 100, `${p.ad}, ${sahip.ad} grubuna okey koydu (çakallık)`);
       olay('isledi', { no, grupId });
     }
     degisti();
@@ -479,7 +487,7 @@ const Motor = (() => {
       puan = -1000;
       neden = 'kafadan bitti';
     } else {
-      puan = 0;
+      puan = -1000;
       neden = 'bitti';
     }
     if (puan) ceza(no, puan, `${f.ad} ${neden}`);
@@ -492,7 +500,7 @@ const Motor = (() => {
     const cezaYaz = bilgi.tip === 'deste' || bilgi.digerlerine;
     if (cezaYaz) {
       o.oyuncular.forEach((p, i) => {
-        if (bilgi.tip === 'bitis' && i === bilgi.no) return;
+        if (bilgi.tip === 'bitis' && kendisiYaDaEsi(i, bilgi.no)) return;  // bitiren ve eşi ceza yemez
         if (!p.acti) ceza(i, 1000, `${p.ad} elini açamadı`);
         else {
           const toplam = p.el.reduce((a, t) => a + K.deger(t, o.okey), 0);

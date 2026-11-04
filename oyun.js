@@ -64,6 +64,7 @@ function menuKur() {
       if (b.disabled) return;
       ui.ayar.mod = b.dataset.mod;
       document.querySelectorAll('#mod button').forEach(x => x.classList.toggle('secili', x === b));
+      if (typeof Ag !== 'undefined') Ag.lobiGuncelle();
     };
   });
   $('yardimli').onchange = () => (ui.ayar.yardimli = $('yardimli').checked);
@@ -86,7 +87,7 @@ function menuKur() {
     $('menu').hidden = true;
     $('oyun').hidden = false;
     Masa = Motor;
-    Motor.yeniOyun([ad, ...BOT_ADLARI], { elSayisi: ui.ayar.elSayisi, yardimli: ui.ayar.yardimli });
+    Motor.yeniOyun([ad, ...BOT_ADLARI], { elSayisi: ui.ayar.elSayisi, yardimli: ui.ayar.yardimli, esli: ui.ayar.mod === 'esli' });
   };
 }
 
@@ -258,6 +259,11 @@ const yandanElde = () => {
 };
 // El sürerken bu elin puanı da toplama eklenmiş gösterilir (el bitince motor zaten ekliyor)
 const anlikPuan = p => p.toplam + (Masa.oyun.asama === 'oyun' ? p.elPuani : 0);
+// Eşli oyun: karşılıklı oturanlar (0-2, 1-3) eştir, takımın puanı iki eşin toplamı
+const esliMi = () => !!Masa.oyun?.ayar.esli;
+const esMi = (a, b) => esliMi() && a !== b && a % 2 === b % 2;
+const takimPuani = (t, puan = anlikPuan) => [t, t + 2].reduce((a, i) => a + puan(Masa.oyun.oyuncular[i]), 0);
+const takimAdi = t => `${guvenli(Masa.oyun.oyuncular[t].ad)} & ${guvenli(Masa.oyun.oyuncular[t + 2].ad)}`;
 
 // HTML taş
 function tasHtml(t, { islek = false, mini = false } = {}) {
@@ -293,7 +299,8 @@ function ciz() {
 
   // Üst bilgi
   $('elBilgi').textContent = `El ${o.elNo}/${o.ayar.elSayisi}`;
-  $('esik').innerHTML = `Açmak için: <b>${Masa.gereken()}+</b>`;
+  $('esik').innerHTML = `Açmak için: <b>${Masa.gereken()}+</b>`
+    + (esliMi() ? ` <span class="takimSkor">🤝 Biz <b>${takimPuani(ui.benimNo % 2)}</b> · Onlar <b>${takimPuani(1 - ui.benimNo % 2)}</b></span>` : '');
 
   // Oyuncu kartları (rakipler ıstakalarının yanında, ben altta)
   [0, 1, 2, 3].forEach(k => {
@@ -302,7 +309,7 @@ function ciz() {
     const kutu = $(`koltuk${k}`);
     const puan = anlikPuan(p);
     const sirada = o.sira === no && o.asama === 'oyun';
-    kutu.className = `koltuk${k ? ' rakip' : ''}${sirada ? ' sirada' : ''}`;
+    kutu.className = `koltuk${k ? ' rakip' : ''}${sirada ? ' sirada' : ''}${esMi(no, ui.benimNo) ? ' es' : ''}`;
     kutu.style.setProperty('--renk', KOLTUK_RENKLERI[no]);
     // Avatarda ismin son kelimesinin baş harfi ("Bot Zeynep" → Z)
     const harf = [...(p.ad.trim().split(/\s+/).at(-1) || '?')][0].toLocaleUpperCase('tr');
@@ -782,6 +789,15 @@ function elTablosuHtml() {
   // En düşük toplam önde: 👑 (herkes eşitse kimse)
   const enAz = Math.min(...birikim);
   const herkesEsit = birikim.every(b => b === enAz);
+  if (o.ayar.esli) {
+    // Eşli: kişi toplamları ve altında takım toplamı (taç kazanan takımda)
+    const takim = birikim.map((b, i) => b + birikim[(i + 2) % 4]);
+    const enAzT = Math.min(...takim);
+    const tEsit = takim.every(t => t === enAzT);
+    const son = '<tr class="toplamSatir"><td>Kişi</td>' + birikim.map(b => `<td colspan="2"><b>${b}</b></td>`).join('') + '</tr>'
+      + '<tr class="toplamSatir takimSatiri"><td>Takım</td>' + takim.map((t, i) => `<td colspan="2"><b class="takim t${i % 2}">${t === enAzT && !tEsit ? '👑 ' : ''}${t}</b></td>`).join('') + '</tr>';
+    return `<thead>${bas}</thead><tbody>${govde}${son}</tbody>`;
+  }
   const son = '<tr class="toplamSatir"><td>Toplam</td>' + birikim.map(b => `<td colspan="2"><b>${b === enAz && !herkesEsit ? '👑 ' : ''}${b}</b></td>`).join('') + '</tr>';
   return `<thead>${bas}</thead><tbody>${govde}${son}</tbody>`;
 }
@@ -806,7 +822,10 @@ function elSonuGoster(son) {
   const s = o.sonuc;
   const baslik = s.tip === 'deste' ? '🀫 Deste bitti' : `🏁 ${guvenli(o.oyuncular[s.no].ad)} ${guvenli(s.neden)}`;
   const kazanan = [...o.oyuncular].sort((a, b) => a.toplam - b.toplam)[0];
-  $('elSonuBaslik').innerHTML = son ? `🏆 ${guvenli(kazanan.ad)} kazandı!` : baslik;
+  const kazananTakim = takimPuani(0, p => p.toplam) <= takimPuani(1, p => p.toplam) ? 0 : 1;
+  $('elSonuBaslik').innerHTML = !son ? baslik
+    : o.ayar.esli ? `🏆 ${takimAdi(kazananTakim)} kazandı!${kazananTakim === ui.benimNo % 2 ? ' 🎉' : ''}`
+      : `🏆 ${guvenli(kazanan.ad)} kazandı!`;
   const h = son ? puanTablosuHtml(p => p.gecmis) : puanTablosuHtml(p => p.gecmis.filter(g => g.el === o.elNo));
   $('elSonuTablo').innerHTML = h.tablo;
   $('elSonuDetay').innerHTML = (son ? kantinHesabiYazisi() : '') + h.detay;
@@ -821,6 +840,14 @@ function kantinHesabiYazisi() {
   const o = Masa.oyun;
   const toplam = o.oyuncular.reduce((a, p, i) => a + (o.ikram?.[i]?.borc ?? 0), 0);
   if (!toplam) return '';
+  if (o.ayar.esli) {
+    // Eşli: yenilen takımın iki eşi yarı yarıya öder
+    const yenilenT = takimPuani(0, p => p.toplam) > takimPuani(1, p => p.toplam) ? 0 : 1;
+    const metin = yenilenT === ui.benimNo % 2
+      ? `😅 Yenildiğiniz için masadaki herkesin hesabını eşinle yarı yarıya ödüyorsunuz!<br>Toplam borcunuz: <b>${toplam} TL</b> · kişi başı <b>${(toplam / 2).toLocaleString('tr')} TL</b>. Bir dahakine kaptırmayın!`
+      : `🧾 ${takimAdi(yenilenT)} yenildi, kantin hesabı onlardan!<br>Toplam: <b>${toplam} TL</b> · kişi başı <b>${(toplam / 2).toLocaleString('tr')} TL</b>. Afiyet olsun 😄`;
+    return `<div class="hesapKutusu">${metin}</div>`;
+  }
   const yenilen = o.oyuncular.reduce((en, p, i) => (p.toplam > o.oyuncular[en].toplam ? i : en), 0);
   const metin = yenilen === ui.benimNo
     ? `😅 Yenildiğin için masadaki herkesin hesabını sen ödüyorsun!<br>Toplam borcunuz: <b>${toplam} TL</b>. Bir dahakine kaptırma!`

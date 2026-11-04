@@ -39,7 +39,7 @@ const Uzak = {
 
 const Ag = (() => {
   // Online kısmı her değiştiğinde 1 artır: eski sürümle gelen oyuncu odaya alınmaz
-  const SURUM = 4;
+  const SURUM = 5;
   const ODA_ONEKI = 'kaptirik-oda-';
   const KOD_HARFLERI = 'ABCDEFGHJKLMNPRSTUVYZ23456789';  // karışabilecek O/0, I/1 yok
   const KOD_UZUNLUK = 5;
@@ -200,21 +200,38 @@ const Ag = (() => {
 
   const koltukAdi = no => ag.koltuklar[no]?.ad ?? BOT_ADLARI[no - 1];
 
-  function lobiListesi(koltuklar, benimNo) {
+  // Eşli oyunda karşılıklı oturanlar eştir: 1. ve 3. koltuk Takım 1, 2. ve 4. koltuk Takım 2
+  function lobiListesi(koltuklar, benimNo, esli) {
     return `<ol class="lobiListesi">${koltuklar.map((k, i) => `<li><span class="nokta" style="background:${KOLTUK_RENKLERI[i]}"></span>`
       + (k ? `${guvenli(k.ad)}${i === 0 ? ' <small>(oda sahibi)</small>' : ''}${i === benimNo ? ' <b>(sen)</b>' : ''}` : `<span class="bos">🤖 ${guvenli(BOT_ADLARI[i - 1])}</span>`)
+      + (esli ? ` <span class="takim t${i % 2}">Takım ${i % 2 + 1}</span>` : '')
       + '</li>').join('')}</ol>`;
+  }
+
+  // Eşli oyunda oda sahibi kiminle eş olacağını seçebilsin: 2-4. koltuktakiler sırayla yer değiştirir
+  function eslesmeyiDegistir() {
+    if (ag.mod !== 'ev' || ag.basladi) return;
+    const [k0, a, b, c] = ag.koltuklar;
+    ag.koltuklar = [k0, c, a, b];
+    ag.koltuklar.forEach((k, no) => {
+      if (!k?.misafir) return;
+      k.misafir.no = no;
+      gonder(k.misafir, { tip: 'kabul', no, surum: SURUM });
+    });
+    Ses.secim();
+    lobiyiCiz();
   }
 
   function lobiyiCiz() {
     const liste = ag.koltuklar.map(k => (k ? { ad: k.ad } : null));
     const kisi = liste.filter(Boolean).length;
     durumYaz(`Oda kodun: <b class="odaKodu">${ag.kod}</b><br>Bu kodu arkadaşlarına söyle, “Katıl” kısmına yazsınlar.`
-      + lobiListesi(liste, 0)
+      + lobiListesi(liste, 0, ui.ayar.mod === 'esli')
       + (kisi > 1 ? 'Herkes geldiyse “Oyunu başlat”a bas. Boş koltuklarda bot oynar.' : '⏳ Arkadaşların bekleniyor...'));
     $('baslatBtn').hidden = false;
     $('baslatBtn').disabled = kisi < 2;
-    const ayar = { elSayisi: ui.ayar.elSayisi, yardimli: ui.ayar.yardimli };
+    const ayar = { elSayisi: ui.ayar.elSayisi, yardimli: ui.ayar.yardimli, esli: ui.ayar.mod === 'esli' };
+    $('eslesmeBtn').hidden = !ayar.esli;
     misafirler().forEach(({ k }) => gonder(k.misafir, { tip: 'lobi', koltuklar: liste, ayar }));
   }
 
@@ -306,7 +323,8 @@ const Ag = (() => {
     Ses.karistir();
     $('menu').hidden = true;
     $('oyun').hidden = false;
-    Motor.yeniOyun(isimler, { elSayisi: ui.ayar.elSayisi, yardimli: ui.ayar.yardimli, botlar });
+    $('eslesmeBtn').hidden = true;
+    Motor.yeniOyun(isimler, { elSayisi: ui.ayar.elSayisi, yardimli: ui.ayar.yardimli, esli: ui.ayar.mod === 'esli', botlar });
     sohbetDagit(-1, '', 'Oyun başladı. İyi eğlenceler! 🎉');
   }
 
@@ -403,8 +421,8 @@ const Ag = (() => {
       kayit(SON_ODA, { kod: ag.kod, zaman: Date.now() });
       durumYaz('✅ Odaya bağlandın! Oyunu oda sahibi başlatacak, bekle...');
     } else if (m?.tip === 'lobi' && Array.isArray(m.koltuklar)) {
-      durumYaz(`✅ Odaya bağlandın! Oyunu oda sahibi başlatacak, bekle...<br><small>${m.ayar?.elSayisi ?? '?'} el · ${m.ayar?.yardimli ? 'yardımlı' : 'yardımsız'}</small>`
-        + lobiListesi(m.koltuklar, ui.benimNo));
+      durumYaz(`✅ Odaya bağlandın! Oyunu oda sahibi başlatacak, bekle...<br><small>${m.ayar?.elSayisi ?? '?'} el · ${m.ayar?.yardimli ? 'yardımlı' : 'yardımsız'} · ${m.ayar?.esli ? 'eşli' : 'eşsiz'}</small>`
+        + lobiListesi(m.koltuklar, ui.benimNo, m.ayar?.esli));
     } else if (m?.tip === 'red') {
       ag.baglanti = null;
       ag.mod = 'yerel';
@@ -631,6 +649,7 @@ const Ag = (() => {
     if (e.key === 'Enter') odayaKatil();
   });
   $('baslatBtn').addEventListener('click', oyunuBaslat);
+  $('eslesmeBtn').addEventListener('click', eslesmeyiDegistir);
   $('odaIptalBtn').addEventListener('click', ayril);
   $('yenidenBaglanBtn').addEventListener('click', () => location.reload());
   $('baglantiCikBtn').addEventListener('click', ayril);
@@ -669,6 +688,10 @@ const Ag = (() => {
 
   return {
     eylem, durumYay, olayYay, ayril, sesteMi,
+    // Menüde ayar değişince (eşli/eşsiz) bekleme odasındakiler de görsün
+    lobiGuncelle() {
+      if (ag.mod === 'ev' && !ag.basladi) lobiyiCiz();
+    },
     // Sorun ararken: kimlerle ses bağlantısı var, ses geliyor mu
     get sesBaglantilari() { return [...ses.aramalar].map(([id, a]) => ({ id, sesGeliyor: !!a.audio.srcObject })); },
     get mod() { return ag.mod; },

@@ -30,7 +30,7 @@
       <div class="satir">
         <span>Oyun</span>
         <div id="mod" class="secenek">
-          <button data-mod="essiz" class="secili">Eşsiz</button><button data-mod="esli" disabled title="Yakında">Eşli (yakında)</button>
+          <button data-mod="essiz" class="secili">Eşsiz</button><button data-mod="esli">Eşli</button>
         </div>
       </div>
       <label class="kutucuk"><input type="checkbox" id="yardimli" checked> Yardımlı mod <small>(işlek uyarısı, atılanları görme)</small></label>
@@ -44,6 +44,7 @@
         </div>
         <button id="geriDonBtn" class="ikinciBtn" hidden></button>
         <div id="onlineDurum"></div>
+        <button id="eslesmeBtn" class="ikinciBtn" hidden>🔀 Eşleri değiştir</button>
         <button id="baslatBtn" class="buyuk" hidden>▶️ Oyunu başlat</button>
         <button id="odaIptalBtn" class="ikinciBtn" hidden>❌ Odayı kapat</button>
         <p class="not">En fazla 4 kişi. Boş koltuklarda bot oynar. Oyundan çıkan olursa yerine bot geçer, aynı adla geri girince devam eder.</p>
@@ -58,8 +59,9 @@
           <li>Bir gruba bir turda en fazla 2 taş işlenir. 3'lü perdeki okey alınmaz, taş yanına eklenir.</li>
           <li>Yandan taş ancak o tur açacaksan alınır. Açınca taşı veren seride ×10, çiftte ×20 ceza yer.</li>
           <li>İşlek taş atmak 500, açamamak 1000 ceza. Elde kalan × 10 ceza.</li>
-          <li>Okeyle bitmek −2000, kafadan bitmek −1000. Kimse açmadan kafadan: −5000 (okeyle −10000, çiftle −20000).</li>
+          <li>Eli bitirmek −1000, okeyle bitmek −2000, kafadan bitmek −1000. Kimse açmadan kafadan: −5000 (okeyle −10000, çiftle −20000).</li>
           <li>Okeye uzun basınca ters döner. En düşük puan kazanır.</li>
+          <li>Eşli oyunda karşılıklı oturanlar eştir, takımın puanı ortaktır. Biri bitirince eşi ceza yemez; eşinin grubuna okey koymak ve oradan okey almak cezasızdır.</li>
         </ul>
       </details>
     </div>

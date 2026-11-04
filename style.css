@@ -269,3 +269,15 @@ details li { margin: 4px 0; }
   background: linear-gradient(#3a2a12, #2a1d0c); border: 1px solid #f6d58a66;
 }
 .hesapKutusu b { color: #f6d58a; font-size: 18px; }
+#eslesmeBtn { width: 100%; margin-top: 8px; }
+.lobiListesi .takim { font-size: 11px; border-radius: 6px; padding: 0 5px; margin-left: 4px; }
+.takim.t0 { background: #e23b3b33; color: #ff9b9b; }
+.takim.t1 { background: #3b82f633; color: #9cc2ff; }
+.takimSkor { margin-left: 6px; background: #0007; border-radius: 8px; padding: 3px 7px; white-space: nowrap; }
+.koltuk.es::after {
+  content: '🤝 eşin'; position: absolute; top: -9px; right: 6px; font-size: 9px; font-weight: 800; background: #1f9d48;
+  color: #fff; border-radius: 6px; padding: 0 5px;
+}
+#elSonuTablo .takimSatiri td { border-top: 0; padding-top: 2px; }
+#elSonuTablo .takimSatiri b.t0 { color: #ff9b9b; }
+#elSonuTablo .takimSatiri b.t1 { color: #9cc2ff; }
