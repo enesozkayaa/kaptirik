@@ -141,6 +141,20 @@ const Ses = (() => {
     },
     // Istakadaki taşları dizme: taşlar kümeler halinde itilir, birbirine çarpar ("tak-tak-tak ... tak-tak")
     diz: () => {
+      // Gerçek kayıttan: taşlar kümeler halinde birbirine çarpar
+      motor();
+      if (kayit) {
+        let t = 0;
+        for (let kume = 0; kume < 5; kume++) {
+          const n = 2 + Math.floor(Math.random() * 3);
+          for (let i = 0; i < n; i++) {
+            t += oyna(0.035, 0.06);
+            parca(TEK, t, oyna(0.45, 0.75), oyna(0.95, 1.12));
+          }
+          t += oyna(0.08, 0.14);
+        }
+        return;
+      }
       let z = 0;
       for (let kume = 0; kume < 5; kume++) {
         kayma(z, 0.06, 0.03);

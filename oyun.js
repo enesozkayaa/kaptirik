@@ -615,14 +615,17 @@ function surukleKur() {
 }
 
 // ---------- Desteden parmakla taş çekme ----------
-// Ortadaki desteye basıp kaydırınca taş parmağını izler. Istakada bir yuvaya bırakırsan oraya yerleşir;
+// Ortadaki desteye (ya da soldakinin attığı taşa) basıp kaydırınca taş parmağını izler. Istakada bir yuvaya bırakırsan oraya yerleşir;
 // yarı yolda (başka bir yere) bırakırsan kendiliğinden ıstakaya uçar. Sadece dokunursan eskisi gibi uçar.
 function desteSurukleKur() {
   $('sahne').addEventListener('pointerdown', e => {
     const o = Masa.oyun;
     if (!o || o.asama !== 'oyun' || ui.surukle || ui.desteCek) return;
-    if (!siraBende() || o.tur.cekti || !Sahne.desteUstunde(e.clientX, e.clientY)) return;
-    ui.desteCek = { pid: e.pointerId, x0: e.clientX, y0: e.clientY, basladi: false, hayalet: null, id: null, birakilan: null };
+    if (!siraBende() || o.tur.cekti) return;
+    // yan: soldakinin attığı taş (yüzü belli); değilse ortadaki deste
+    const yan = !!Masa.yandakiTas(ui.benimNo) && Sahne.yanUstunde(e.clientX, e.clientY);
+    if (!yan && !Sahne.desteUstunde(e.clientX, e.clientY)) return;
+    ui.desteCek = { pid: e.pointerId, x0: e.clientX, y0: e.clientY, basladi: false, hayalet: null, id: null, birakilan: null, yan };
   });
 
   document.addEventListener('pointermove', e => {
@@ -632,17 +635,20 @@ function desteSurukleKur() {
       if (Math.hypot(e.clientX - s.x0, e.clientY - s.y0) < 8) return;
       s.basladi = true;
       Sahne.tiklamayiIptal();
-      // Önce sırtı görünen bir taş tutulur; çekilen taş gelince yüzü görünür
+      // Desteden: önce sırtı görünen bir taş tutulur, çekilen taş gelince yüzü görünür. Yandan: yüzü baştan belli
       const g = $('istaka').querySelector('.yuva').getBoundingClientRect();
+      const yandaki = s.yan && Masa.yandakiTas(ui.benimNo);
       s.hayalet = document.createElement('div');
       s.hayalet.className = 'ucan tutulan';
-      s.hayalet.innerHTML = '<div class="tas ters"></div>';
+      s.hayalet.innerHTML = yandaki ? tasHtml(yandaki) : '<div class="tas ters"></div>';
       Object.assign(s.hayalet.style, { width: `${g.width}px`, height: `${g.height}px` });
       s.hayalet.style.setProperty('--g', getComputedStyle($('istaka')).getPropertyValue('--g'));
       s.dx = g.width / 2;
       s.dy = g.height * 0.7;
       document.body.appendChild(s.hayalet);
-      if (!sonuc(Masa.ortadanCek(ui.benimNo))) {
+      const r = s.yan ? Masa.yandanAl(ui.benimNo) : Masa.ortadanCek(ui.benimNo);
+      if (s.yan && r.ok) mesaj('Soldan aldın: bu taşla elini aç ya da işle. Olmazsa “Geri bırak”.');
+      if (!sonuc(r)) {
         s.hayalet.remove();
         ui.desteCek = null;
         return;
@@ -820,7 +826,7 @@ function olay(tip, v) {
     Ses.cek(v.no === ui.benimNo && !ui.desteCek?.basladi ? 0.4 : 0);
     // Benim çektiğim taş desteden (ya da soldan) ıstakama uçar
     const dc = ui.desteCek;
-    if (v.no === ui.benimNo && v.tas && dc?.basladi && !v.yandan) {  // sadece gerçekten sürükleniyorsa (dokunuşta taş uçar)
+    if (v.no === ui.benimNo && v.tas && dc?.basladi && !!v.yandan === dc.yan) {  // sadece gerçekten sürükleniyorsa (dokunuşta taş uçar)
       dc.id = v.tas.id;
       if (dc.birakilan) {
         // Taş sunucudan gelmeden parmak kalktıysa: bırakılan yerden ıstakaya uçar

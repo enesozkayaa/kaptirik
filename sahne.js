@@ -699,8 +699,14 @@ const Sahne = (() => {
     return n.tik?.tur === 'deste' || Math.hypot(n.x - DESTE.x, n.z - DESTE.z) < 0.7;
   }
 
+  // Ekrandaki nokta soldaki oyuncunun attığı taşların (yandan alınan) üstünde mi?
+  function yanUstunde(cx, cy) {
+    const n = noktada(cx, cy);
+    return (n.tik?.tur === 'atilan' && n.tik.koltuk === 3) || Math.hypot(n.x - KOSE[3][0], n.z - KOSE[3][1]) < 1.0;
+  }
+
   return {
-    RENKLER, KOSE, baslat, ciz, tasYuzu, ekranda, noktada, atmaYeri, yakinGruplar, desteUstunde, grupUcu,
+    RENKLER, KOSE, baslat, ciz, tasYuzu, ekranda, noktada, atmaYeri, yakinGruplar, desteUstunde, yanUstunde, grupUcu,
     tiklayinca(fn) { tiklaninca = fn; },
     // Masada başlayan dokunuş sürüklemeye döndüyse, parmak kalkınca tıklama sayılmasın
     tiklamayiIptal() { masadaBasildi = false; },
