@@ -279,7 +279,6 @@ details li { margin: 4px 0; }
   background: linear-gradient(#3a2a12, #2a1d0c); border: 1px solid #f6d58a66;
 }
 .hesapKutusu b { color: #f6d58a; font-size: 18px; }
-#eslesmeBtn { width: 100%; margin-top: 8px; }
 .lobiListesi .takim { font-size: 11px; border-radius: 6px; padding: 0 5px; margin-left: 4px; }
 .takim.t0 { background: #e23b3b33; color: #ff9b9b; }
 .takim.t1 { background: #3b82f633; color: #9cc2ff; }
@@ -305,3 +304,31 @@ details li { margin: 4px 0; }
 }
 .balon.gidiyor { opacity: 0; }
 @keyframes balonGel { from { opacity: 0; transform: translate(-50%, -80%) scale(.8); } to { opacity: 1; transform: translate(-50%, -100%); } }
+
+/* Bekleme odası: küçük masa, herkes kendini altta görür; koltuğa dokununca oraya geçilir */
+.lobiMasa {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: auto auto auto; gap: 6px;
+  max-width: 320px; margin: 12px auto 4px; align-items: center;
+}
+.lobiMasaOrta {
+  grid-area: 2 / 2; aspect-ratio: 1; border-radius: 14px; background: radial-gradient(#2f7a45, #1d5430);
+  border: 3px solid #7a4a22; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: #ffffffb0; line-height: 1.2;
+}
+.lobiKoltuk {
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 4px; min-width: 0;
+  border-radius: 10px; border: 2px solid #ffffff30; background: #0005; color: #fff; font: inherit; cursor: pointer;
+}
+.lobiKoltuk b { font-size: 12.5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lobiKoltuk small { font-size: 10.5px; opacity: .75; }
+.lobiKoltuk .nokta { width: 10px; height: 10px; border-radius: 50%; }
+.lobiKoltuk.bos b { opacity: .55; font-weight: 500; }
+.lobiKoltuk.ben { border-color: #f6d58a; cursor: default; }
+.lobiKoltuk:not(.ben):active { transform: scale(.95); }
+.lobiKoltuk.t0 { background: #e23b3b2a; }
+.lobiKoltuk.t1 { background: #3b82f62a; }
+.lobiKoltuk.ust { grid-area: 1 / 2; }
+.lobiKoltuk.sol { grid-area: 2 / 1; }
+.lobiKoltuk.sag { grid-area: 2 / 3; }
+.lobiKoltuk.alt { grid-area: 3 / 2; }
+.lobiIpucu { display: block; opacity: .7; margin-bottom: 6px; }

@@ -39,7 +39,7 @@ const Uzak = {
 
 const Ag = (() => {
   // Online kısmı her değiştiğinde 1 artır: eski sürümle gelen oyuncu odaya alınmaz
-  const SURUM = 5;
+  const SURUM = 6;
   const ODA_ONEKI = 'kaptirik-oda-';
   const KOD_HARFLERI = 'ABCDEFGHJKLMNPRSTUVYZ23456789';  // karışabilecek O/0, I/1 yok
   const KOD_UZUNLUK = 5;
@@ -200,25 +200,39 @@ const Ag = (() => {
 
   const koltukAdi = no => ag.koltuklar[no]?.ad ?? BOT_ADLARI[no - 1];
 
-  // Eşli oyunda karşılıklı oturanlar eştir: 1. ve 3. koltuk Takım 1, 2. ve 4. koltuk Takım 2
+  // Bekleme odasında küçük bir masa: herkes kendini altta görür, karşısı üstte, sağı/solu yanlarda
+  // (oyundaki gibi). Bir koltuğa dokunan oraya geçer; koltuk doluysa ikisi yer değiştirir.
+  // Eşli oyunda karşılıklı oturanlar eştir.
   function lobiListesi(koltuklar, benimNo, esli) {
-    return `<ol class="lobiListesi">${koltuklar.map((k, i) => `<li><span class="nokta" style="background:${KOLTUK_RENKLERI[i]}"></span>`
-      + (k ? `${guvenli(k.ad)}${i === 0 ? ' <small>(oda sahibi)</small>' : ''}${i === benimNo ? ' <b>(sen)</b>' : ''}` : `<span class="bos">🤖 ${guvenli(BOT_ADLARI[i - 1])}</span>`)
-      + (esli ? ` <span class="takim t${i % 2}">Takım ${i % 2 + 1}</span>` : '')
-      + '</li>').join('')}</ol>`;
+    const yerler = [['alt', 0], ['sag', 1], ['ust', 2], ['sol', 3]];
+    const koltuk = ([yer, fark]) => {
+      const i = (benimNo + fark) % 4, k = koltuklar[i];
+      const etiket = fark === 0 ? 'Sen' : esli ? (fark === 2 ? '🤝 Eşin' : 'Rakip') : fark === 2 ? 'Karşın' : fark === 1 ? 'Sağın' : 'Solun';
+      return `<button type="button" class="lobiKoltuk ${yer}${fark === 0 ? ' ben' : ''}${k ? '' : ' bos'}${esli ? ` t${i % 2}` : ''}" data-yer="${i}">`
+        + `<span class="nokta" style="background:${KOLTUK_RENKLERI[i]}"></span>`
+        + `<b>${k ? guvenli(k.ad) : `🤖 ${guvenli(BOT_ADLARI[i - 1])}`}</b>`
+        + `<small>${etiket}${i === 0 ? ' · oda sahibi' : ''}</small></button>`;
+    };
+    return `<div class="lobiMasa">${yerler.map(koltuk).join('')}<div class="lobiMasaOrta">${esli ? 'Eşin<br>karşında' : 'Masa'}</div></div>`
+      + '<small class="lobiIpucu">👆 Oturmak istediğin koltuğa dokun. Orada biri varsa yer değiştirirsiniz.</small>';
   }
 
-  // Eşli oyunda oda sahibi kiminle eş olacağını seçebilsin: 2-4. koltuktakiler sırayla yer değiştirir
-  function eslesmeyiDegistir() {
-    if (ag.mod !== 'ev' || ag.basladi) return;
-    const [k0, a, b, c] = ag.koltuklar;
-    ag.koltuklar = [k0, c, a, b];
-    ag.koltuklar.forEach((k, no) => {
-      if (!k?.misafir) return;
-      k.misafir.no = no;
-      gonder(k.misafir, { tip: 'kabul', no, surum: SURUM });
+  // no numaralı oyuncu hedef koltuğa geçer (doluysa yer değiştirirler). Oda sahibi her zaman 0. koltuk
+  // sayılır; masa, oda sahibi 0'da kalacak şekilde döndürülür (kimin kimin yanında olduğu değişmez).
+  function yerDegistir(no, hedef) {
+    if (ag.mod !== 'ev' || ag.basladi || !Number.isInteger(hedef) || hedef < 0 || hedef > 3 || hedef === no) return;
+    const ev = ag.koltuklar[0];
+    const d = [...ag.koltuklar];
+    [d[no], d[hedef]] = [d[hedef], d[no]];
+    const h = d.indexOf(ev);
+    ag.koltuklar = d.map((_, i) => d[(i + h) % 4]);
+    ag.koltuklar.forEach((k, yeniNo) => {
+      if (!k?.misafir || k.misafir.no === yeniNo) return;
+      k.misafir.no = yeniNo;
+      gonder(k.misafir, { tip: 'kabul', no: yeniNo, surum: SURUM });
     });
     Ses.secim();
+    sesListesiYay();
     lobiyiCiz();
   }
 
@@ -231,7 +245,6 @@ const Ag = (() => {
     $('baslatBtn').hidden = false;
     $('baslatBtn').disabled = kisi < 2;
     const ayar = { elSayisi: ui.ayar.elSayisi, yardimli: ui.ayar.yardimli, esli: ui.ayar.mod === 'esli' };
-    $('eslesmeBtn').hidden = !ayar.esli;
     misafirler().forEach(({ k }) => gonder(k.misafir, { tip: 'lobi', koltuklar: liste, ayar }));
   }
 
@@ -254,6 +267,8 @@ const Ag = (() => {
     } else if (m?.tip === 'ses') {
       ag.koltuklar[no].ses = !!m.acik;
       sesListesiYay();
+    } else if (m?.tip === 'yer') {
+      yerDegistir(no, m.hedef);
     }
   }
 
@@ -323,7 +338,6 @@ const Ag = (() => {
     Ses.karistir();
     $('menu').hidden = true;
     $('oyun').hidden = false;
-    $('eslesmeBtn').hidden = true;
     Motor.yeniOyun(isimler, { elSayisi: ui.ayar.elSayisi, yardimli: ui.ayar.yardimli, esli: ui.ayar.mod === 'esli', botlar });
     sohbetDagit(-1, '', 'Oyun başladı. İyi eğlenceler! 🎉');
   }
@@ -651,7 +665,14 @@ const Ag = (() => {
     if (e.key === 'Enter') odayaKatil();
   });
   $('baslatBtn').addEventListener('click', oyunuBaslat);
-  $('eslesmeBtn').addEventListener('click', eslesmeyiDegistir);
+  // Bekleme odasındaki masada bir koltuğa dokununca oraya geç
+  $('onlineDurum').addEventListener('click', e => {
+    const b = e.target.closest('.lobiKoltuk');
+    if (!b || b.classList.contains('ben')) return;
+    const hedef = +b.dataset.yer;
+    if (ag.mod === 'ev') yerDegistir(0, hedef);
+    else if (ag.mod === 'misafir' && ag.baglanti?.open) ag.baglanti.send({ tip: 'yer', hedef });
+  });
   $('odaIptalBtn').addEventListener('click', ayril);
   $('yenidenBaglanBtn').addEventListener('click', () => location.reload());
   $('baglantiCikBtn').addEventListener('click', ayril);
