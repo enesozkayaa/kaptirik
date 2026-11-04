@@ -99,32 +99,39 @@ const Sahne = (() => {
 
   // ---------- Taş dokuları ----------
   const onbellek = new Map();
+  // Masadaki taşların yüzü: büyük çözünürlük, koyu ve doygun renkler, sayıların çevresinde ince koyu kenar
+  // (uzaktan ve telefonda da okunsun diye)
+  const YUZ_RENKLERI = ['#e08600', '#0a58d0', '#111111', '#d01414'];
   function tasYuzu(t, okey) {
     const k = t.sahte ? 'sahte' : `${t.renk}-${t.sayi}`;
     if (onbellek.has(k)) return onbellek.get(k);
-    const d = dokuKanvas(128, 176, (g, w, h) => {
-      g.fillStyle = '#f6efdc';
+    const d = dokuKanvas(256, 352, (g, w, h) => {
+      g.fillStyle = '#fffaf0';
       g.fillRect(0, 0, w, h);
-      g.strokeStyle = '#cbbd9a';
-      g.lineWidth = 6;
-      g.strokeRect(3, 3, w - 6, h - 6);
+      g.strokeStyle = '#d8c9a6';
+      g.lineWidth = 8;
+      g.strokeRect(4, 4, w - 8, h - 8);
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
       if (t.sahte) {
-        g.fillStyle = '#1d6b3a';
-        g.font = 'bold 96px serif';
-        g.textAlign = 'center';
-        g.textBaseline = 'middle';
+        g.fillStyle = '#12753a';
+        g.font = 'bold 210px serif';
         g.fillText('★', w / 2, h / 2);
         return;
       }
-      g.fillStyle = RENKLER[t.renk];
-      g.font = 'bold 84px Arial, sans-serif';
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
+      const renk = YUZ_RENKLERI[t.renk];
+      g.font = `900 ${t.sayi >= 10 ? 170 : 200}px Arial, sans-serif`;
+      g.lineJoin = 'round';
+      g.lineWidth = 10;
+      g.strokeStyle = 'rgba(0,0,0,.28)';
+      g.strokeText(t.sayi, w / 2, h * 0.42);
+      g.fillStyle = renk;
       g.fillText(t.sayi, w / 2, h * 0.42);
       g.beginPath();
-      g.arc(w / 2, h * 0.78, 12, 0, Math.PI * 2);
+      g.arc(w / 2, h * 0.8, 26, 0, Math.PI * 2);
       g.fill();
     });
+    d.anisotropy = 8;
     onbellek.set(k, d);
     return d;
   }
@@ -158,7 +165,9 @@ const Sahne = (() => {
     govde.castShadow = true;
     const yuz = new THREE.Mesh(
       new THREE.PlaneGeometry(TAS_G * olcek * 0.96, TAS_Y * olcek * 0.96),
-      new THREE.MeshStandardMaterial({ map: ters ? tasSirti() : tasYuzu(t), roughness: 0.45 }),
+      // Yüz ışıktan etkilenmez (renkler sönmesin, sayılar her yerden net okunsun); ters okey sırtı ışıkta kalır
+      ters ? new THREE.MeshStandardMaterial({ map: tasSirti(), roughness: 0.45 })
+        : new THREE.MeshBasicMaterial({ map: tasYuzu(t), color: 0xf2f2f2, toneMapped: false }),
     );
     yuz.rotation.x = -Math.PI / 2;
     yuz.position.y = TAS_K / 2 + 0.001;
