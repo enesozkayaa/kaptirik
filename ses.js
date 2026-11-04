@@ -135,7 +135,12 @@ const Ses = (() => {
       kayma(Math.max(0, gecikme - 0.13), 0.14, 0.05);
       if (!parca(TEK, gecikme, 1)) vurus(gecikme, 0.45, 0.35);
     },
+    // Taş atma: masaya biraz daha sert ve tok bir "tak" + küçük bir sekme (gerçek kayıttan)
     at: () => {
+      if (parca(TEK, 0, 1.25, 0.9)) {
+        parca(TEK, oyna(0.045, 0.06), 0.25, 0.95);
+        return;
+      }
       vurus(0, 0.85, 0.9);
       vurus(0.045, 0.2, 0.3);  // küçük sekme
     },
@@ -202,6 +207,16 @@ const Ses = (() => {
     },
     // Açınca: taşlar masaya tek tek dizilir
     ac: () => {
+      motor();
+      if (kayit) {
+        // Taşlar masaya gruplar halinde tek tek konur
+        let t = 0;
+        for (let i = 0; i < 10; i++) {
+          parca(TEK, t, oyna(0.75, 1), oyna(0.92, 1.05));
+          t += i % 4 === 3 ? oyna(0.12, 0.18) : oyna(0.055, 0.075);
+        }
+        return;
+      }
       for (let i = 0; i < 10; i++) vurus(i * 0.06, oyna(0.45, 0.6), 0.6);
     },
     ceza: () => {
@@ -216,6 +231,12 @@ const Ses = (() => {
     },
     // El bitince taşlar masaya bırakılır
     bitis: () => {
+      // Son taş sertçe ortaya konur, sonra herkes elindeki taşları masaya bırakır (gerçek kayıttan)
+      if (parca(TEK, 0, 1.4, 0.88)) {
+        parca(KUME, 0.18, 1);
+        for (let i = 0; i < 8; i++) parca(TEK, 0.25 + oyna(0, 0.6), oyna(0.3, 0.6));
+        return;
+      }
       vurus(0, 1, 1);
       for (let i = 0; i < 20; i++) vurus(0.15 + oyna(0, 0.5), oyna(0.2, 0.5), 0.5);
     },
