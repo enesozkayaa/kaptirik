@@ -275,7 +275,7 @@ function tasHtml(t, { islek = false, mini = false } = {}) {
   const okey = K.jokerMi(t, o.okey);
   if (t.ters && okey) return `<div class="tas ters${mini ? ' mini' : ''}" data-id="${t.id}"></div>`;
   const ic = t.sahte
-    ? '<span class="yildiz">★</span>'
+    ? '<span class="yildiz">★</span><span class="nokta" style="background:#1f9d48"></span>'
     : `<span class="sayi" style="color:${RENK_KODLARI[t.renk]}">${t.sayi}</span><span class="nokta" style="background:${RENK_KODLARI[t.renk]}"></span>`;
   return `<div class="tas${okey ? ' okey' : ''}${mini ? ' mini' : ''}${islek ? ' islek' : ''}" data-id="${t.id}">${ic}</div>`;
 }

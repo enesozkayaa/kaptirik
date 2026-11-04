@@ -149,14 +149,13 @@ details li { margin: 4px 0; }
 }
 .tas .sayi { font-weight: 900; font-size: calc(var(--g, 30px) * .52); line-height: 1; }
 .tas .nokta { width: 22%; aspect-ratio: 1; border-radius: 50%; margin-top: 8%; }
-.tas .yildiz { color: #1f9d48; font-size: calc(var(--g, 30px) * .6); }
+.tas .yildiz { color: #1f9d48; font-size: calc(var(--g, 30px) * .6); line-height: 1; }
 .tas.okey { box-shadow: inset 0 -3px 0 #c9bb95, 0 0 0 2px #f2b600, 0 2px 4px #000; }
 .tas.ters { background: linear-gradient(#2f7a52, #1d5236); box-shadow: inset 0 -3px 0 #123a24, 0 0 0 2px #f2b600; }
 .tas.secili { transform: translateY(-9px); box-shadow: inset 0 -3px 0 #c9bb95, 0 0 0 3px #36c3ff, 0 6px 8px #0008; }
 .tas.yandan::after { content: ''; position: absolute; inset: -2px; border: 2px dashed #f08a3a; border-radius: 6px; }
 /* İşlek taş: sayının altındaki yuvarlağın çevresinde halka */
 .tas.islek .nokta { box-shadow: 0 0 0 2px #fffdf5, 0 0 0 4px #d62828; }
-.tas.islek .yildiz { text-shadow: 0 0 0 #000; outline: 2px solid #d62828; outline-offset: 1px; border-radius: 50%; }
 .tas.mini { --g: 22px; width: 22px; height: 30px; display: inline-flex; vertical-align: middle; cursor: default; }
 .tas.mini .sayi { font-size: 13px; }
 .tas.mini .nokta { display: none; }
