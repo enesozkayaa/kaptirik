@@ -8,7 +8,8 @@
 //   - Başkasının dizdiği gruba taş işlemek: grubun sahibine taş × 10 ceza
 //   - Başkasının dizdiği gruba okey koymak (çakallık): grubun sahibine 100 ceza
 //   - O okeyin yerine gerçek taş konursa: grubun sahibine 500 + taş × 10 ceza
-//   - El bitince: hiç açamayana 1000, açmış olana elinde kalan taşların toplamı × 10 ceza
+//   - El bitince: hiç açamayana 1000, açmış olana elinde kalan taşların toplamı × 10 ceza;
+//     açmış olanın elinde okey kaldıysa her okey için ayrıca 500 ceza (açamayana sadece 1000)
 //   - Biten oyuncu:
 //       kimse açmamışken kafadan biterse -5000 (okeyle -10000, çiftle okeyle -20000), diğerlerine ceza yok
 //       başkası açmışken kafadan biterse -1000, okeyle biterse -2000, normal biterse -1000
@@ -538,6 +539,9 @@ const Motor = (() => {
         else {
           const toplam = p.el.reduce((a, t) => a + K.deger(t, o.okey), 0);
           if (toplam) ceza(i, toplam * 10, `${p.ad} elinde ${toplam} kaldı (× 10)`);
+          // Elini açıp okeyi atamadan el bittiyse: her okey için ayrıca 500
+          const okeySayisi = p.el.filter(t => K.jokerMi(t, o.okey)).length;
+          if (okeySayisi) ceza(i, okeySayisi * 500, `${p.ad} elinde ${okeySayisi > 1 ? okeySayisi + ' ' : ''}okey kaldı (+${okeySayisi * 500})`);
         }
       });
     }
