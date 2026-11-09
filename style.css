@@ -334,3 +334,7 @@ details li { margin: 4px 0; }
 #onlineSayi { margin: -4px 0 10px; text-align: center; font-size: 13px; color: #cfe9d6; }
 #onlineSayi b { color: #7dff9b; }
 #onlineSayi .yesil { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #3ddc6b; box-shadow: 0 0 6px #3ddc6b; margin-right: 3px; vertical-align: 1px; animation: nabiz 1.6s infinite; }
+
+/* iPhone: yazı kutusuna dokununca ekran büyümesin (16px altı yazılar büyütme yapar), çift dokunuşla büyütme olmasın */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+input, select, textarea { font-size: max(16px, 1em); }
