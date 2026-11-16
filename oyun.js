@@ -433,10 +433,15 @@ function dugmeleriCiz() {
       d.push(`<button data-e="acSeri" ${ds.gruplar.length ? '' : 'disabled'}>Seri aç (${ds.deger})</button>`);
       d.push(`<button data-e="acCift" ${dc.gruplar.length >= K.CIFT_SAYISI ? '' : 'disabled'}>Çift aç (${dc.gruplar.length})</button>`);
     } else {
-      const koyulacak = ben.acisTuru === 'cift' ? dc.gruplar.length : ds.gruplar.length;
-      if (koyulacak) d.push(`<button data-e="${ben.acisTuru === 'cift' ? 'acCift' : 'acSeri'}">Yere koy</button>`);
+      // Çiftler, çift açmış bir rakibin önüne konur (ceza ona: çift taşı × 20). Hangisinin önüne, sen seçersin.
+      const hedefler = ciftHedefleri(o, ui.benimNo);
+      const ciftDugmeleri = () => hedefler.length
+        ? hedefler.forEach(h => d.push(`<button data-e="acCift:${h}">Çiftleri koy → ${guvenli(o.oyuncular[h].ad)}</button>`))
+        : d.push('<button data-e="acCift">Çiftleri koy</button>');
+      if (ben.acisTuru === 'seri' && ds.gruplar.length) d.push('<button data-e="acSeri">Yere koy</button>');
+      if (ben.acisTuru === 'cift' && dc.gruplar.length) ciftDugmeleri();
       // Seri açtıysan ve yerde çift açılmışsa çiftlerini de koyabilirsin
-      if (ben.acisTuru === 'seri' && dc.gruplar.length && o.masa.some(g => g.tur === 'cift')) d.push('<button data-e="acCift">Çiftleri koy</button>');
+      else if (ben.acisTuru === 'seri' && dc.gruplar.length && o.masa.some(g => g.tur === 'cift')) ciftDugmeleri();
     }
     // Yardımlı modda uyan taşların hepsini tek basışla işle (yanlışsa "Geri al" hepsini geri getirir)
     if (ben.acti && o.ayar.yardimli && ben.el.some(t => !K.jokerMi(t, o.okey) && K.islekMi(t, o.masa, o.okey))) {
@@ -511,15 +516,23 @@ function eylem(e) {
     if (once) ui.yuvalar = once;
     sonuc(Masa.geriAl(ui.benimNo));
   }
-  else if (e === 'acSeri' || e === 'acCift') {
+  else if (e === 'acSeri' || e.startsWith('acCift')) {
     const tur = e === 'acSeri' ? 'seri' : 'cift';
-    const r = hamle(() => Masa.ac(ui.benimNo, tur, diziliGruplar(tur).gruplar.map(g => g.sirali.map(t => t.id))));
+    const hedef = e.includes(':') ? +e.split(':')[1] : undefined;
+    const r = hamle(() => Masa.ac(ui.benimNo, tur, diziliGruplar(tur).gruplar.map(g => g.sirali.map(t => t.id)), hedef));
     const enIyi = K.enIyiGruplar(ben.el, o.okey).deger;
     if (!r.ok && !ben.acti && tur === 'seri' && enIyi >= Masa.gereken()) {
       Ses.hata();
       mesaj(`${r.hata}<br><small>İpucu: “Seri diz”e basarsan ${enIyi} oluyor.</small>`, 'hata');
     } else sonuc(r);
   }
+}
+
+// Yere çift koyulabilecek rakipler: çift açmış, ben ve eşim olmayanlar (ilk açan başta)
+function ciftHedefleri(o, ben) {
+  const es = i => o.ayar.esli && i !== ben && i % 2 === ben % 2;
+  return o.oyuncular.map((x, i) => ({ x, i })).filter(({ x, i }) => x.acti && x.acisTuru === 'cift' && i !== ben && !es(i))
+    .sort((a, b) => (a.x.acmaSirasi ?? 0) - (b.x.acmaSirasi ?? 0)).map(({ i }) => i);
 }
 
 // ---------- Taş çekme ----------

@@ -203,7 +203,8 @@ const Motor = (() => {
   // Elini aç ya da (açtıysan) yeni grupları yere koy. tur: 'seri' | 'cift'
   // idGruplari: oyuncunun ıstakasında dizdiği gruplar (taş id listeleri). Verilmezse en iyi diziliş bulunur (botlar).
   // Son taş atılarak bitirilir: elde en az bir taş kalmalı.
-  function ac(no, tur, idGruplari) {
+  // hedef: daha önce açmışken yere çift koyarken, çiftlerin hangi çift açanın önüne konacağı (ceza ona)
+  function ac(no, tur, idGruplari, hedef) {
     if (!siraKimde(no)) return hata('Sıra sende değil.');
     if (!o.tur.cekti) return hata('Önce taş çek.');
     const p = o.oyuncular[no];
@@ -249,7 +250,10 @@ const Motor = (() => {
     kaydet();
     const ilkAcis = !p.acti;
     const yandanKullanildi = o.tur.yandan && gruplar.some(g => g.sirali.includes(o.tur.yandan));
-    gruplar.forEach(g => masayaKoy(no, g));
+    // Açmışken yere yeni çift: seçilen (yoksa ilk) çift açan rakibin önüne konur, o çift artık onundur
+    const ciftHedefi = !ilkAcis && tur === 'cift' ? ciftHedefiBul(no, hedef) : null;
+    gruplar.forEach(g => masayaKoy(no, g, ciftHedefi ?? no));
+    if (ciftHedefi !== null) gruplar.forEach(g => g.sirali.forEach(t => { if (K.jokerMi(t, o.okey)) t.konduTur = o.turNo; }));
     if (ilkAcis) {
       p.acti = true;
       p.acisTuru = tur;
@@ -260,21 +264,15 @@ const Motor = (() => {
     } else {
       olay('koydu', { no, tur, deger: sonuc.deger });
     }
-    // Daha önce açmışken yere yeni çift koyduysan: çift açmış (ilk) oyuncuya her çift için taş × 20 ceza
-    // (kendisi ya da eşi çift açtıysa ceza yok)
-    if (!ilkAcis && tur === 'cift') {
-      const ciftAcan = o.oyuncular.map((x, i) => ({ x, i }))
-        .filter(({ x, i }) => x.acti && x.acisTuru === 'cift' && !kendisiYaDaEsi(i, no))
-        .sort((a, b) => (a.x.acmaSirasi ?? 0) - (b.x.acmaSirasi ?? 0))[0];
-      const ilkCiftAcan = o.oyuncular.map((x, i) => ({ x, i })).filter(({ x }) => x.acti && x.acisTuru === 'cift')
-        .sort((a, b) => (a.x.acmaSirasi ?? 0) - (b.x.acmaSirasi ?? 0))[0];
-      if (ciftAcan && ilkCiftAcan && ciftAcan.i === ilkCiftAcan.i) {
-        gruplar.forEach(g => {
-          const tas = g.sirali.find(x => !K.jokerMi(x, o.okey)) ?? g.sirali[0];
-          const d = K.deger(tas, o.okey);
-          ceza(ciftAcan.i, d * 20, `${p.ad} yere ${d} çifti koydu (çift açan: ${ciftAcan.x.ad}, × 20)`);
-        });
-      }
+    // Daha önce açmışken yere yeni çift koyduysan: önüne koyduğun çift açana her çift için taş × 20 ceza
+    // (okey + 7 koyduysan 140). Sonra o okeyin yerine 7 konursa (tur dönünce) ona ayrıca 500 + 7 × 20.
+    if (ciftHedefi !== null) {
+      const h = o.oyuncular[ciftHedefi];
+      gruplar.forEach(g => {
+        const tas = g.sirali.find(x => !K.jokerMi(x, o.okey)) ?? g.sirali[0];
+        const d = K.deger(tas, o.okey);
+        ceza(ciftHedefi, d * 20, `${p.ad}, ${h.ad} önüne ${d} çifti koydu (× 20)`);
+      });
     }
     // Yandan alınan taşla açtıysan ya da (daha önce açmışken) yere yeni grup koyduysan taşı atana ceza:
     // seri açmış olana göre × 10, çift açmış olana göre × 20
@@ -294,11 +292,11 @@ const Motor = (() => {
     return tamam({ deger: sonuc.deger });
   }
 
-  function masayaKoy(no, g) {
+  function masayaKoy(no, g, sahip = no) {
     const p = o.oyuncular[no];
     const ids = new Set(g.sirali.map(t => t.id));
     p.el = p.el.filter(t => !ids.has(t.id));
-    o.masa.push({ id: ++o.grupSayaci, sahip: no, tur: g.tur, sirali: g.sirali, temsil: g.temsil, deger: g.deger });
+    o.masa.push({ id: ++o.grupSayaci, sahip, tur: g.tur, sirali: g.sirali, temsil: g.temsil, deger: g.deger });
   }
 
   // Elindeki bir taşı masadaki bir gruba işle. yon: okey serinin hangi ucuna ('sol' baş, 'sag' son),
@@ -409,6 +407,17 @@ const Motor = (() => {
   }
 
   // Bu taş bu gruba şimdi işlenebilir mi? (uyuyor mu ve bu turun işleme sınırı dolmadı mı)
+  // Yere çift koyulabilecek rakipler: çift açmış, kendisi ve eşi olmayanlar (ilk açan başta)
+  function ciftHedefleri(no) {
+    return o.oyuncular.map((x, i) => ({ x, i }))
+      .filter(({ x, i }) => x.acti && x.acisTuru === 'cift' && !kendisiYaDaEsi(i, no))
+      .sort((a, b) => (a.x.acmaSirasi ?? 0) - (b.x.acmaSirasi ?? 0)).map(({ i }) => i);
+  }
+  function ciftHedefiBul(no, hedef) {
+    const L = ciftHedefleri(no);
+    if (!L.length) return null;                       // sadece kendisi/eşi çift açmışsa kendi önüne, cezasız
+    return L.includes(hedef) ? hedef : L[0];
+  }
   // İşlenen taş grubun hangi ucuna gitti? (başa geldiyse sol, değilse sağ)
   const uc = (s, t) => (s.yeni.sirali.length > 1 && s.yeni.sirali[0] === t ? 'sol' : 'sag');
   function isleyebilir(t, g, yon = 'sag') {
@@ -662,6 +671,12 @@ const Motor = (() => {
           }
         }
       }
+      // Çiftleri yere koy: çift açmış rakiplerden puanı en iyi (en düşük) olanın önüne
+      const hedefler = ciftHedefleri(no);
+      if (devam() && hedefler.length && p.el.length > 3 && K.enIyiCiftler(p.el, o.okey).ciftler.length) {
+        const h = [...hedefler].sort((a, b) => (o.oyuncular[a].toplam + o.oyuncular[a].elPuani) - (o.oyuncular[b].toplam + o.oyuncular[b].elPuani))[0];
+        if (ac(no, 'cift', undefined, h).ok) await bekle(500);
+      }
       // Çakallık: elde okey kaldıysa (el sonunda 500 ceza yemesin) rakibin grubuna en büyük sayı yerine koy
       for (const ok of p.el.filter(t => K.jokerMi(t, o.okey))) {
         if (!devam() || p.el.length <= 2 || p.acisTuru !== 'seri') break;
@@ -696,7 +711,7 @@ const Motor = (() => {
     TUR_SURESI,
     dinleyici(ad, fn) { dinle[ad] = fn; },
     get oyun() { return o; },
-    yeniOyun, sonrakiEl, geriAlinabilir, ikram, botYap, gorunum, gereken, kimseAcmadi, yandakiTas, enKotuTas,
+    yeniOyun, sonrakiEl, geriAlinabilir, ikram, botYap, gorunum, gereken, kimseAcmadi, yandakiTas, enKotuTas, ciftHedefleri,
     ortadanCek: oyuncuHamlesi(ortadanCek),
     yandanAl: oyuncuHamlesi(yandanAl),
     geriBirak: oyuncuHamlesi(geriBirak),
