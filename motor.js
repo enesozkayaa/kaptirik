@@ -6,8 +6,10 @@
 //   - Yandan alıp elini açarsan: seri açtıysan taşı atana taş × 10, çift açtıysan × 20 ceza
 //   - İşlek taş atmak: 500 ceza
 //   - Başkasının dizdiği gruba taş işlemek: grubun sahibine taş × 10 ceza
-//   - Başkasının dizdiği gruba okey koymak (çakallık): grubun sahibine 100 ceza
+//   - Başkasının dizdiği gruba okey koymak (çakallık): grubun sahibine okeyin yerine geçtiği sayı × 10 ceza
 //   - O okeyin yerine gerçek taş konursa: grubun sahibine 500 + taş × 10 ceza
+//     (okey konduğu turda takas edilemez; tur dönünce koyan da dahil herkes takas edebilir)
+//   - Bir gruba bir turda en fazla 2 taş işlenir (sağ + sol toplam, okey koymak da sayılır)
 //   - El bitince: hiç açamayana 1000, açmış olana elinde kalan taşların toplamı × 10 ceza;
 //     açmış olanın elinde okey kaldıysa her okey için ayrıca 500 ceza (açamayana sadece 1000)
 //   - Biten oyuncu:
@@ -91,6 +93,7 @@ const Motor = (() => {
     o.sira = no;
     const p = o.oyuncular[no];
     const sure = p.uzakta ? UZAKTA_SURESI : TUR_SURESI;
+    o.turNo = (o.turNo || 0) + 1;   // her sıra değişiminde artar (okeyin hangi turda konduğunu bilmek için)
     o.tur = { cekti: ilk, yandan: null, acikBasta: p.acti, kalan: sure, toplam: sure, sureSifirlandi: false, geriAl: [], islenen: {} };
     zamanlayiciBaslat();
     degisti();
@@ -311,6 +314,8 @@ const Motor = (() => {
     const s = K.isleme(g, t, o.okey, yon === 'sol' ? 'sol' : 'sag');
     if (!s) return hata('Bu taş bu gruba uymuyor.');
     if (!s.takas && p.el.length === 1) return hata('Son taşını işleyemezsin: ortaya atarak bitir.');
+    // Bu tur konan okeyin yerine aynı tur taş konamaz (okey koy, işle, okey koy... döngüsü olmasın)
+    if (s.takas && g.sirali[s.yer].konduTur === o.turNo) return hata('Bu okeyi bu tur koydun. Yerine taş koymak için tur dönmeli.');
     if (!s.takas && (o.tur.islenen[grupId] ?? 0) >= ISLEME_SINIRI) {
       return hata(`Bir gruba bir turda en fazla ${ISLEME_SINIRI} taş işlenir. Diğerini bir sonraki turunda işle.`);
     }
@@ -331,7 +336,12 @@ const Motor = (() => {
     } else {
       Object.assign(g, { sirali: s.yeni.sirali, temsil: s.yeni.temsil, deger: s.yeni.deger });
       o.tur.islenen[grupId] = (o.tur.islenen[grupId] ?? 0) + 1;
-      if (K.jokerMi(t, o.okey) && !kendisiYaDaEsi(g.sahip, no)) ceza(g.sahip, 100, `${p.ad}, ${sahip.ad} grubuna okey koydu (çakallık)`);
+      if (K.jokerMi(t, o.okey)) t.konduTur = o.turNo;
+      // Çakallık: başkasının grubuna okey koymak; okeyin yerine geçtiği sayı × 10 ceza grubun sahibine
+      if (K.jokerMi(t, o.okey) && !kendisiYaDaEsi(g.sahip, no)) {
+        const yer = g.sirali.indexOf(t), sayi = (g.temsil[yer] || {}).sayi || 0;
+        ceza(g.sahip, sayi * 10, `${p.ad}, ${sahip.ad} grubuna okeyi ${sayi} yerine koydu (çakallık, ${sayi} × 10)`);
+      }
       // Başkasının grubuna işlenen her taş: grubun sahibine taş × 10 ceza (kendi ya da eşinin grubu cezasız)
       else if (!K.jokerMi(t, o.okey) && !kendisiYaDaEsi(g.sahip, no)) {
         ceza(g.sahip, K.deger(t, o.okey) * 10, `${p.ad}, ${sahip.ad} grubuna ${K.deger(t, o.okey)} işledi`);
