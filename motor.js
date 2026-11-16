@@ -9,7 +9,7 @@
 //   - Başkasının dizdiği gruba okey koymak (çakallık): grubun sahibine okeyin yerine geçtiği sayı × 10 ceza
 //   - O okeyin yerine gerçek taş konursa: grubun sahibine 500 + taş × 10 ceza
 //     (okey konduğu turda takas edilemez; tur dönünce koyan da dahil herkes takas edebilir)
-//   - Bir gruba bir turda en fazla 2 taş işlenir (sağ + sol toplam, okey koymak da sayılır)
+//   - Bir grubun her ucuna bir turda en fazla 2 taş işlenir: sağa 2, sola 2 (okey koymak da sayılır)
 //   - El bitince: hiç açamayana 1000, açmış olana elinde kalan taşların toplamı × 10 ceza;
 //     açmış olanın elinde okey kaldıysa her okey için ayrıca 500 ceza (açamayana sadece 1000)
 //   - Biten oyuncu:
@@ -28,7 +28,7 @@ const Motor = (() => {
   const TUR_SURESI = 30;     // saniye
   const ACMA_SURESI = 60;
   const UZAKTA_SURESI = 10;  // süresini kaçıran (oynamayan) oyuncunun sonraki turları kısa sürer, kimse beklemesin
-  const ISLEME_SINIRI = 2;   // bir gruba bir turda en fazla bu kadar taş işlenir    // elini açınca düşünmek için verilen süre (saniye)
+  const ISLEME_SINIRI = 2;   // bir grubun HER UCUNA bir turda en fazla bu kadar taş işlenir (sağa 2 + sola 2)    // elini açınca düşünmek için verilen süre (saniye)
   const BOT_HIZ = 900;       // botun her hamlesi arasında bekleme (ms)
 
   let o = null;
@@ -316,8 +316,9 @@ const Motor = (() => {
     if (!s.takas && p.el.length === 1) return hata('Son taşını işleyemezsin: ortaya atarak bitir.');
     // Bu tur konan okeyin yerine aynı tur taş konamaz (okey koy, işle, okey koy... döngüsü olmasın)
     if (s.takas && g.sirali[s.yer].konduTur === o.turNo) return hata('Bu okeyi bu tur koydun. Yerine taş koymak için tur dönmeli.');
-    if (!s.takas && (o.tur.islenen[grupId] ?? 0) >= ISLEME_SINIRI) {
-      return hata(`Bir gruba bir turda en fazla ${ISLEME_SINIRI} taş işlenir. Diğerini bir sonraki turunda işle.`);
+    const anahtar = s.takas ? null : `${grupId}:${uc(s, t)}`;
+    if (!s.takas && (o.tur.islenen[anahtar] ?? 0) >= ISLEME_SINIRI) {
+      return hata(`Bir grubun bir ucuna bir turda en fazla ${ISLEME_SINIRI} taş işlenir (sağa ${ISLEME_SINIRI}, sola ${ISLEME_SINIRI}). Diğerini bir sonraki turunda işle.`);
     }
     if (kayit) kaydet();
     p.el.splice(p.el.indexOf(t), 1);
@@ -335,7 +336,7 @@ const Motor = (() => {
       olay('takas', { no, grupId });
     } else {
       Object.assign(g, { sirali: s.yeni.sirali, temsil: s.yeni.temsil, deger: s.yeni.deger });
-      o.tur.islenen[grupId] = (o.tur.islenen[grupId] ?? 0) + 1;
+      o.tur.islenen[anahtar] = (o.tur.islenen[anahtar] ?? 0) + 1;
       if (K.jokerMi(t, o.okey)) t.konduTur = o.turNo;
       // Çakallık: başkasının grubuna okey koymak; okeyin yerine geçtiği sayı × 10 ceza grubun sahibine
       if (K.jokerMi(t, o.okey) && !kendisiYaDaEsi(g.sahip, no)) {
@@ -408,9 +409,27 @@ const Motor = (() => {
   }
 
   // Bu taş bu gruba şimdi işlenebilir mi? (uyuyor mu ve bu turun işleme sınırı dolmadı mı)
-  function isleyebilir(t, g) {
-    const s = K.isleme(g, t, o.okey);
-    return !!s && (s.takas || (o.tur.islenen[g.id] ?? 0) < ISLEME_SINIRI);
+  // İşlenen taş grubun hangi ucuna gitti? (başa geldiyse sol, değilse sağ)
+  const uc = (s, t) => (s.yeni.sirali.length > 1 && s.yeni.sirali[0] === t ? 'sol' : 'sag');
+  function isleyebilir(t, g, yon = 'sag') {
+    const s = K.isleme(g, t, o.okey, yon);
+    if (!s) return false;
+    if (s.takas) return g.sirali[s.yer].konduTur !== o.turNo;
+    return (o.tur.islenen[`${g.id}:${uc(s, t)}`] ?? 0) < ISLEME_SINIRI;
+  }
+  // Bot çakallığı: okeyi rakibin grubunda en büyük sayıya denk gelecek yere koy (eşinin grubuna koymaz)
+  function enIyiCakallik(no, okeyTasi) {
+    let en = null;
+    for (const g of o.masa) {
+      if (g.tur === 'cift' || kendisiYaDaEsi(g.sahip, no)) continue;
+      for (const yon of ['sol', 'sag']) {
+        if (!isleyebilir(okeyTasi, g, yon)) continue;
+        const s = K.isleme(g, okeyTasi, o.okey, yon);
+        const sayi = (s.yeni.temsil[s.yeni.sirali.indexOf(okeyTasi)] || {}).sayi || 0;
+        if (!en || sayi > en.sayi) en = { grupId: g.id, yon, sayi };
+      }
+    }
+    return en;
   }
 
   // ---------- Kantin (süs) ----------
@@ -626,7 +645,7 @@ const Motor = (() => {
       if (p.acti) await bekle(BOT_HIZ);
     }
     if (!devam()) return;
-    // Açtıysa: yeni grupları koy, uyan taşları işle (okeyi başkasına çakallık için koymaz)
+    // Açtıysa: yeni grupları koy, uyan taşları işle, elinde okey varsa rakibe çakallık yap
     if (p.acti) {
       if (p.acisTuru === 'seri' && K.enIyiGruplar(p.el, o.okey).gruplar.length && p.el.length > 1) ac(no, 'seri');
       if (!devam()) return;
@@ -642,6 +661,12 @@ const Motor = (() => {
             break;
           }
         }
+      }
+      // Çakallık: elde okey kaldıysa (el sonunda 500 ceza yemesin) rakibin grubuna en büyük sayı yerine koy
+      for (const ok of p.el.filter(t => K.jokerMi(t, o.okey))) {
+        if (!devam() || p.el.length <= 2 || p.acisTuru !== 'seri') break;
+        const en = enIyiCakallik(no, ok);
+        if (en && en.sayi >= 4 && isle(no, ok.id, en.grupId, en.yon).ok) await bekle(500);
       }
       if (o.tur.yandan && p.el.includes(o.tur.yandan)) geriBirak(no, true);
     }
